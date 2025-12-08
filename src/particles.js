@@ -72,6 +72,12 @@ export class ParticleSystem {
 
         this.forceMultiplier = 1; // 1 = repulsion, negative = attraction
         this.currentVisibilityRadius = 750; // Dynamic visibility radius
+        
+        // Scroll-based visibility control
+        this.containerElement = document.querySelector('.container');
+        this.resumeSectionElement = document.querySelector('.resume-section');
+        this.scrollVisibilityMultiplier = 1.0; // 0-1, controls particle visibility based on scroll
+        this.targetScrollVisibility = 1.0;
 
         this.resize();
         this.updateButtonPositions();
@@ -83,6 +89,12 @@ export class ParticleSystem {
             this.targetMouseX = e.clientX;
             this.targetMouseY = e.clientY;
         });
+        window.addEventListener('scroll', () => {
+            this.updateScrollVisibility();
+        });
+        
+        // Initial visibility check
+        this.updateScrollVisibility();
 
         this.createParticles();
         this.animate();
@@ -101,6 +113,42 @@ export class ParticleSystem {
                 element: btn
             };
         });
+    }
+
+    updateScrollVisibility() {
+        if (!this.containerElement || !this.resumeSectionElement) {
+            this.targetScrollVisibility = 1.0;
+            return;
+        }
+
+        const containerRect = this.containerElement.getBoundingClientRect();
+        const resumeRect = this.resumeSectionElement.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        
+        // Check if container is still visible in viewport
+        const containerBottom = containerRect.bottom;
+        const resumeTop = resumeRect.top;
+        
+        // Start fading when resume section starts entering viewport
+        // Fade out completely when resume section reaches middle of viewport
+        const fadeStartPoint = viewportHeight * 0.7; // Start fading when resume is 70% from top
+        const fadeEndPoint = viewportHeight * 0.5; // Fully faded when resume reaches middle of viewport (50%)
+        
+        if (resumeTop < fadeStartPoint) {
+            // Resume section is entering viewport, fade out particles
+            if (resumeTop <= fadeEndPoint) {
+                // Fully faded out
+                this.targetScrollVisibility = 0;
+            } else {
+                // Calculate fade progress (0 = fully visible, 1 = fully hidden)
+                const fadeRange = fadeStartPoint - fadeEndPoint;
+                const fadeProgress = (fadeStartPoint - resumeTop) / fadeRange;
+                this.targetScrollVisibility = Math.max(0, 1 - fadeProgress);
+            }
+        } else {
+            // Container area is visible, particles should be fully visible
+            this.targetScrollVisibility = 1.0;
+        }
     }
 
     resize() {
@@ -146,6 +194,9 @@ export class ParticleSystem {
     animate() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.time += 1;
+
+        // Update scroll visibility multiplier with smooth lerp
+        this.scrollVisibilityMultiplier += (this.targetScrollVisibility - this.scrollVisibilityMultiplier) * 0.1;
 
         this.currentMouseX += (this.targetMouseX - this.currentMouseX) * 0.1;
         this.currentMouseY += (this.targetMouseY - this.currentMouseY) * 0.1;
@@ -303,6 +354,8 @@ export class ParticleSystem {
 
                 let opacity = Math.max(0, 1 - Math.pow(distance / this.currentVisibilityRadius, 2));
                 opacity *= 0.5;
+                // Apply scroll-based visibility multiplier
+                opacity *= this.scrollVisibilityMultiplier;
 
                 // Calculate normal animation position
                 const normalX = currentAnimX;
