@@ -22,8 +22,16 @@ export class ParticleSystem {
         this.canvas.style.pointerEvents = 'none';
         document.body.appendChild(this.canvas);
 
+        // Select buttons for the flashlight masking effect
+        this.buttons = Array.from(document.querySelectorAll('.social-links a'));
+        this.buttonsData = [];
+
         this.resize();
-        window.addEventListener('resize', () => this.resize());
+        this.updateButtonPositions(); // Call updateButtonPositions initially
+        window.addEventListener('resize', () => {
+            this.resize();
+            this.updateButtonPositions();
+        });
         window.addEventListener('mousemove', (e) => {
             this.targetMouseX = e.clientX;
             this.targetMouseY = e.clientY;
@@ -33,10 +41,23 @@ export class ParticleSystem {
         this.animate();
     }
 
+    updateButtonPositions() {
+        // Cache button positions to avoid reflow in animation loop
+        this.buttonsData = this.buttons.map(btn => {
+            const rect = btn.getBoundingClientRect();
+            return {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2,
+                element: btn
+            };
+        });
+    }
+
     resize() {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
         this.createParticles();
+        this.updateButtonPositions();
     }
 
     createParticles() {
@@ -78,6 +99,29 @@ export class ParticleSystem {
 
         const visibilityRadius = 750;
         const pushRadius = 600;
+        // Separate radius for buttons to handle masking independently (reduced further)
+        const buttonVisibilityRadius = 550;
+
+        // --- Button Masking Effect ---
+        if (this.buttonsData) {
+            this.buttonsData.forEach(btnData => {
+                const dx = this.currentMouseX - btnData.x;
+                const dy = this.currentMouseY - btnData.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                // Calculate opacity based on button visibility radius
+                let opacity = 0;
+                if (dist < buttonVisibilityRadius) {
+                    opacity = Math.max(0, 1 - Math.pow(dist / buttonVisibilityRadius, 2));
+                    // Boost opacity curve slightly so they don't fade too early
+                    opacity = Math.pow(opacity, 0.5);
+                }
+
+                btnData.element.style.opacity = opacity;
+                // Disable interaction when fully invisible or very faint
+                btnData.element.style.pointerEvents = opacity < 0.1 ? 'none' : 'auto';
+            });
+        }
 
         this.particles.forEach(p => {
             const dx = this.currentMouseX - p.originX;
