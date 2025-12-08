@@ -1,3 +1,10 @@
+// Circle radius multiplier - adjust this to change circle size
+const CIRCLE_RADIUS_MULTIPLIER = 0.8; // 0.8 = 80% of button width
+// Enable smooth lerp transition for circle animation
+const ENABLE_CIRCLE_LERP = true; // true = smooth transition, false = instant transition
+// Lerp speed for smooth transition into/out of circle animation (0-1, higher = faster)
+const CIRCLE_LERP_SPEED = 0.15; // 0.08 = smooth transition over ~12-13 frames
+
 export class ParticleSystem {
     constructor() {
         this.canvas = document.createElement('canvas');
@@ -40,11 +47,27 @@ export class ParticleSystem {
         this.buttons = Array.from(document.querySelectorAll('.social-links a'));
         this.buttonsData = [];
 
-        // Add hover listeners for 'gathering' effect
+        // Add hover listeners for 'gathering' effect - track each button individually
         this.isHovering = false;
-        this.buttons.forEach(btn => {
-            btn.addEventListener('mouseenter', () => { this.isHovering = true; });
-            btn.addEventListener('mouseleave', () => { this.isHovering = false; });
+        this.buttons.forEach((btn, index) => {
+            btn.addEventListener('mouseenter', () => { 
+                this.isHovering = true;
+                if (this.buttonsData[index]) {
+                    this.buttonsData[index].isHovered = true;
+                }
+            });
+            btn.addEventListener('mouseleave', () => { 
+                this.isHovering = false;
+                if (this.buttonsData[index]) {
+                    this.buttonsData[index].isHovered = false;
+                    // Reset circleState for particles in this button's circle
+                    this.particles.forEach(p => {
+                        if (p.circleState && p.circleState.buttonIndex === index) {
+                            p.circleState = null;
+                        }
+                    });
+                }
+            });
         });
 
         this.forceMultiplier = 1; // 1 = repulsion, negative = attraction
@@ -68,9 +91,13 @@ export class ParticleSystem {
     updateButtonPositions() {
         this.buttonsData = this.buttons.map(btn => {
             const rect = btn.getBoundingClientRect();
+            // Calculate circle radius: button width = radius (as per plan)
+            const radius = rect.width;
             return {
                 x: rect.left + rect.width / 2,
                 y: rect.top + rect.height / 2,
+                radius: radius,
+                isHovered: false,
                 element: btn
             };
         });
@@ -104,7 +131,13 @@ export class ParticleSystem {
                     phaseX2: Math.random() * Math.PI * 2,
                     phaseY1: Math.random() * Math.PI * 2,
                     phaseY2: Math.random() * Math.PI * 2,
-                    amp: 10 + Math.random() * 10
+                    amp: 10 + Math.random() * 10,
+                    circleState: null, // null = outside circle, {buttonIndex, angle, targetRadius} = inside circle
+                    // Circle offset for polish: small variations in radius and angle
+                    circleRadiusOffset: (Math.random() - 0.5) * 8, // -4 to +4 pixels offset from circle edge
+                    circleAngleOffset: (Math.random() - 0.5) * 0.15, // -0.075 to +0.075 radians offset
+                    circleScale: 0.3 + Math.random() * 0.5, // Random scale between 0.3 and 0.8 for circle animation
+                    circleLerpProgress: 0 // 0-1, lerp progress for smooth transition into/out of circle animation
                 });
             }
         }
@@ -144,15 +177,16 @@ export class ParticleSystem {
             });
         }
 
+        // Rotation speed: approximately 0.5-1 second per full rotation (0.015 rad/frame at 60fps)
+        const rotationSpeed = 0.015;
+
         this.particles.forEach(p => {
             const dx = this.currentMouseX - p.originX;
             const dy = this.currentMouseY - p.originY;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < this.currentVisibilityRadius) {
-                let opacity = Math.max(0, 1 - Math.pow(distance / this.currentVisibilityRadius, 2));
-                opacity *= 0.5;
-
+                // Calculate current animation position (for circle detection)
                 const waveX = (Math.sin(this.time * p.fx1 + p.phaseX1) + Math.cos(this.time * p.fx2 + p.phaseX2)) * p.amp;
                 const waveY = (Math.sin(this.time * p.fy1 + p.phaseY1) + Math.cos(this.time * p.fy2 + p.phaseY2)) * p.amp;
 
@@ -167,19 +201,157 @@ export class ParticleSystem {
                     pushY = Math.sin(angleToParticle) * force;
                 }
 
-                const currentX = p.originX + waveX + pushX;
-                const currentY = p.originY + waveY + pushY;
+                const currentAnimX = p.originX + waveX + pushX;
+                const currentAnimY = p.originY + waveY + pushY;
 
-                const particleDx = this.currentMouseX - currentX;
-                const particleDy = this.currentMouseY - currentY;
-                const particleAngle = Math.atan2(particleDy, particleDx);
+                // Check if particle is inside any hovered button's circle (using current animation position)
+                // Calculate button position in real-time for accurate circle detection
+                let insideCircle = false;
+                let hoveredButtonData = null;
+                let buttonIndex = -1;
+
+                if (this.buttons) {
+                    for (let i = 0; i < this.buttons.length; i++) {
+                        const btn = this.buttons[i];
+                        // Check if button is hovered by checking if it has the hover state
+                        // We'll use the buttonsData for hover state, but calculate position in real-time
+                        if (this.buttonsData[i] && this.buttonsData[i].isHovered) {
+                            // Get real-time button position (accounts for transforms, scroll, etc.)
+                            const btnRect = btn.getBoundingClientRect();
+                            const btnCenterX = btnRect.left + btnRect.width / 2;
+                            const btnCenterY = btnRect.top + btnRect.height / 2;
+                            const btnRadius = btnRect.width * CIRCLE_RADIUS_MULTIPLIER;
+                            
+                            const btnDx = currentAnimX - btnCenterX;
+                            const btnDy = currentAnimY - btnCenterY;
+                            const btnDistance = Math.sqrt(btnDx * btnDx + btnDy * btnDy);
+                            
+                            if (btnDistance <= btnRadius) {
+                                insideCircle = true;
+                                hoveredButtonData = {
+                                    x: btnCenterX,
+                                    y: btnCenterY,
+                                    radius: btnRadius
+                                };
+                                buttonIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Update circleState and lerp progress
+                if (insideCircle && hoveredButtonData) {
+                    // Particle enters or is inside circle
+                    if (!p.circleState || p.circleState.buttonIndex !== buttonIndex) {
+                        // Calculate initial angle based on particle's current animation position relative to button center
+                        const btnDx = currentAnimX - hoveredButtonData.x;
+                        const btnDy = currentAnimY - hoveredButtonData.y;
+                        const initialAngle = Math.atan2(btnDy, btnDx);
+                        
+                        p.circleState = {
+                            buttonIndex: buttonIndex,
+                            angle: initialAngle,
+                            targetRadius: hoveredButtonData.radius
+                        };
+                        // Reset lerp progress when entering new circle
+                        p.circleLerpProgress = 0;
+                    } else {
+                        // Update angle for rotation (clockwise = increasing angle)
+                        p.circleState.angle += rotationSpeed;
+                        if (p.circleState.angle > Math.PI * 2) {
+                            p.circleState.angle -= Math.PI * 2;
+                        }
+                    }
+                    // Lerp progress towards 1 (fully in circle animation)
+                    if (ENABLE_CIRCLE_LERP) {
+                        p.circleLerpProgress = Math.min(1, p.circleLerpProgress + CIRCLE_LERP_SPEED);
+                    } else {
+                        p.circleLerpProgress = 1; // Instant transition
+                    }
+                } else {
+                    // Particle is outside all circles
+                    if (p.circleState) {
+                        // Lerp progress towards 0 (back to normal animation)
+                        if (ENABLE_CIRCLE_LERP) {
+                            p.circleLerpProgress = Math.max(0, p.circleLerpProgress - CIRCLE_LERP_SPEED);
+                            // Remove circleState when lerp is complete
+                            if (p.circleLerpProgress <= 0) {
+                                p.circleState = null;
+                            }
+                        } else {
+                            p.circleLerpProgress = 0; // Instant transition
+                            p.circleState = null;
+                        }
+                    } else {
+                        // Ensure lerp progress is 0 when not in circle
+                        p.circleLerpProgress = 0;
+                    }
+                }
+                
+                // Get real-time button position for circle animation (if particle is in circle)
+                let realTimeButtonData = null;
+                if (p.circleState && this.buttons[p.circleState.buttonIndex]) {
+                    const btn = this.buttons[p.circleState.buttonIndex];
+                    const btnRect = btn.getBoundingClientRect();
+                    realTimeButtonData = {
+                        x: btnRect.left + btnRect.width / 2,
+                        y: btnRect.top + btnRect.height / 2,
+                        radius: btnRect.width * CIRCLE_RADIUS_MULTIPLIER
+                    };
+                }
+
+                let opacity = Math.max(0, 1 - Math.pow(distance / this.currentVisibilityRadius, 2));
+                opacity *= 0.5;
+
+                // Calculate normal animation position
+                const normalX = currentAnimX;
+                const normalY = currentAnimY;
+                const normalDx = this.currentMouseX - normalX;
+                const normalDy = this.currentMouseY - normalY;
+                const normalAngle = Math.atan2(normalDy, normalDx);
+
+                // Calculate circle animation position (if applicable)
+                let circleX = normalX;
+                let circleY = normalY;
+                let circleAngle = normalAngle;
+                
+                if (p.circleState && realTimeButtonData) {
+                    // Circle animation: place particle on circle edge and rotate with polish offsets
+                    // Use real-time button position for accurate circle positioning
+                    const effectiveRadius = realTimeButtonData.radius + p.circleRadiusOffset;
+                    const effectiveAngle = p.circleState.angle + p.circleAngleOffset;
+                    
+                    circleX = realTimeButtonData.x + effectiveRadius * Math.cos(effectiveAngle);
+                    circleY = realTimeButtonData.y + effectiveRadius * Math.sin(effectiveAngle);
+                    
+                    // Particle should point tangentially to the circle (perpendicular to radius)
+                    circleAngle = effectiveAngle + Math.PI / 2; // 90 degrees offset for tangent
+                }
+
+                // Lerp between normal and circle animation based on lerp progress
+                const lerp = p.circleLerpProgress;
+                const currentX = normalX + (circleX - normalX) * lerp;
+                const currentY = normalY + (circleY - normalY) * lerp;
+                
+                // Lerp angle (handle angle wrapping)
+                let particleAngle;
+                let angleDiff = circleAngle - normalAngle;
+                // Normalize angle difference to -PI to PI range
+                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                particleAngle = normalAngle + angleDiff * lerp;
 
                 this.ctx.save();
                 this.ctx.translate(currentX, currentY);
                 this.ctx.rotate(particleAngle);
 
                 let scale = 1;
-                if (distance < pushRadius) {
+                if (p.circleState) {
+                    // Circle animation: use random scale for variety
+                    scale = p.circleScale;
+                } else if (distance < pushRadius) {
+                    // Normal animation: scale based on distance from mouse
                     scale = 0.1 + (distance / pushRadius) * 0.9;
                 }
 
