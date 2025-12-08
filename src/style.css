@@ -1,0 +1,111 @@
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #0f0f0f;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #0f0f0f;
+}
+
+#app {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  text-align: center;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  animation: fadeIn 1s ease-out;
+  position: relative;
+  z-index: 10;
+}
+
+.title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 7vw;
+  line-height: 1.1;
+  padding-top: 0.1em;
+  padding-bottom: 0.1em;
+  font-weight: 600;
+  /* Semi-bold to match top text of reference */
+  white-space: nowrap;
+  margin: 0;
+  background: linear-gradient(to right, #646cff, #9089fc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.02em;
+  /* Tighter tracking for modern look */
+  text-shadow: 0 0 30px rgba(100, 108, 255, 0.2);
+}
+
+.subtitle {
+  font-family: 'Outfit', sans-serif;
+  font-size: 3.25vw;
+  line-height: 1.2;
+  font-weight: 400;
+  /* Regular weight for bottom text */
+  margin-top: -1vw;
+  letter-spacing: -0.01em;
+  background: linear-gradient(to right, #646cff, #9089fc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* Removed outline stroke to match the clean filled text of reference */
+  -webkit-text-stroke: 0;
+  text-shadow: 0 0 20px rgba(100, 108, 255, 0.1);
+  opacity: 0.9;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+
+  body {
+    background: radial-gradient(circle at 50% 50%, #f9f9f9 0%, #f0f0f0 100%);
+  }
+
+  .title {
+    text-shadow: 0 0 30px rgba(100, 108, 255, 0.1);
+  }
+}
