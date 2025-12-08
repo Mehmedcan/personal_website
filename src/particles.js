@@ -13,6 +13,20 @@ export class ParticleSystem {
     }
 
     init() {
+        // Detect mobile devices
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+
+        // If mobile, don't initialize particles
+        if (this.isMobile) {
+            // Make all social buttons always visible on mobile
+            const buttons = document.querySelectorAll('.social-links a');
+            buttons.forEach(btn => {
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            });
+            return; // Exit early, no particles on mobile
+        }
+
         this.canvas.style.position = 'fixed';
         this.canvas.style.top = '0';
         this.canvas.style.left = '0';
@@ -26,8 +40,18 @@ export class ParticleSystem {
         this.buttons = Array.from(document.querySelectorAll('.social-links a'));
         this.buttonsData = [];
 
+        // Add hover listeners for 'gathering' effect
+        this.isHovering = false;
+        this.buttons.forEach(btn => {
+            btn.addEventListener('mouseenter', () => { this.isHovering = true; });
+            btn.addEventListener('mouseleave', () => { this.isHovering = false; });
+        });
+
+        this.forceMultiplier = 1; // 1 = repulsion, negative = attraction
+        this.currentVisibilityRadius = 750; // Dynamic visibility radius
+
         this.resize();
-        this.updateButtonPositions(); // Call updateButtonPositions initially
+        this.updateButtonPositions();
         window.addEventListener('resize', () => {
             this.resize();
             this.updateButtonPositions();
@@ -42,7 +66,6 @@ export class ParticleSystem {
     }
 
     updateButtonPositions() {
-        // Cache button positions to avoid reflow in animation loop
         this.buttonsData = this.buttons.map(btn => {
             const rect = btn.getBoundingClientRect();
             return {
@@ -73,8 +96,6 @@ export class ParticleSystem {
                     originY: j * spacing,
                     size: 3,
                     color: Math.random() > 0.5 ? '#646cff' : '#9089fc',
-                    // Composite wave properties for complex non-looping motion
-                    // We use two different frequencies and phases per axis to create chaotic "heartbeat" like wandering
                     fx1: 0.01 + Math.random() * 0.04,
                     fx2: 0.01 + Math.random() * 0.04,
                     fy1: 0.01 + Math.random() * 0.04,
@@ -83,7 +104,7 @@ export class ParticleSystem {
                     phaseX2: Math.random() * Math.PI * 2,
                     phaseY1: Math.random() * Math.PI * 2,
                     phaseY2: Math.random() * Math.PI * 2,
-                    amp: 10 + Math.random() * 10 // Larger amplitude for "big" movement
+                    amp: 10 + Math.random() * 10
                 });
             }
         }
@@ -93,32 +114,32 @@ export class ParticleSystem {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.time += 1;
 
-        // LERP for mouse
         this.currentMouseX += (this.targetMouseX - this.currentMouseX) * 0.1;
         this.currentMouseY += (this.targetMouseY - this.currentMouseY) * 0.1;
 
-        const visibilityRadius = 750;
         const pushRadius = 600;
-        // Separate radius for buttons to handle masking independently (reduced further)
+
+        const targetVisibilityRadius = this.isHovering ? 450 : 750;
+        this.currentVisibilityRadius += (targetVisibilityRadius - this.currentVisibilityRadius) * 0.1;
+
+        const targetMultiplier = this.isHovering ? -2.5 : 1.0;
+        this.forceMultiplier += (targetMultiplier - this.forceMultiplier) * 0.1;
+
         const buttonVisibilityRadius = 550;
 
-        // --- Button Masking Effect ---
         if (this.buttonsData) {
             this.buttonsData.forEach(btnData => {
                 const dx = this.currentMouseX - btnData.x;
                 const dy = this.currentMouseY - btnData.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
 
-                // Calculate opacity based on button visibility radius
                 let opacity = 0;
                 if (dist < buttonVisibilityRadius) {
                     opacity = Math.max(0, 1 - Math.pow(dist / buttonVisibilityRadius, 2));
-                    // Boost opacity curve slightly so they don't fade too early
                     opacity = Math.pow(opacity, 0.5);
                 }
 
                 btnData.element.style.opacity = opacity;
-                // Disable interaction when fully invisible or very faint
                 btnData.element.style.pointerEvents = opacity < 0.1 ? 'none' : 'auto';
             });
         }
@@ -128,25 +149,19 @@ export class ParticleSystem {
             const dy = this.currentMouseY - p.originY;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            if (distance < visibilityRadius) {
-                // Calculate base opacity based on distance
-                let opacity = Math.max(0, 1 - Math.pow(distance / visibilityRadius, 2));
-                // Reduce global alpha as requested (dimmer particles)
+            if (distance < this.currentVisibilityRadius) {
+                let opacity = Math.max(0, 1 - Math.pow(distance / this.currentVisibilityRadius, 2));
                 opacity *= 0.5;
 
-                // --- Complex Organic Motion ---
-                // Summing multiple sine waves creates a pattern that takes a very long time to repeat (pseudo-random)
-                // This simulates "brownian" or "organic" float better than a single loop.
                 const waveX = (Math.sin(this.time * p.fx1 + p.phaseX1) + Math.cos(this.time * p.fx2 + p.phaseX2)) * p.amp;
                 const waveY = (Math.sin(this.time * p.fy1 + p.phaseY1) + Math.cos(this.time * p.fy2 + p.phaseY2)) * p.amp;
 
-                // --- Repulsion Effect ---
                 let pushX = 0;
                 let pushY = 0;
 
                 if (distance < pushRadius) {
                     const angleToParticle = Math.atan2(-dy, -dx);
-                    const force = (1 - distance / pushRadius) * 120;
+                    const force = (1 - distance / pushRadius) * 120 * this.forceMultiplier;
 
                     pushX = Math.cos(angleToParticle) * force;
                     pushY = Math.sin(angleToParticle) * force;
@@ -163,7 +178,6 @@ export class ParticleSystem {
                 this.ctx.translate(currentX, currentY);
                 this.ctx.rotate(particleAngle);
 
-                // --- Scale Effect ---
                 let scale = 1;
                 if (distance < pushRadius) {
                     scale = 0.1 + (distance / pushRadius) * 0.9;

@@ -3,12 +3,17 @@ import { ParticleSystem } from './particles.js'
 
 document.querySelector('#app').innerHTML = `
   <div class="container">
+    <div class="emoji-line">👋</div>
+    <p class="intro-text">Hey, I am</p>
     <h1 class="title">Mehmedcan Özman</h1>
-    <p class="subtitle">Developing Games..</p>
     
     <div class="social-links">
       <a href="https://github.com/mehmedcan" target="_blank" aria-label="Github">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+      </a>
+      
+      <a href="https://www.linkedin.com/in/mehmedcan/" target="_blank" aria-label="LinkedIn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
       </a>
       
       <a href="https://www.instagram.com/mehmedcanozman" target="_blank" aria-label="Instagram">
@@ -20,6 +25,119 @@ document.querySelector('#app').innerHTML = `
       </a>
     </div>
   </div>
+
+  <!-- Resume Section (Scroll down to see) -->
+  <div class="resume-section">
+    <h1 class="heading-3">My Journey</h1>
+    
+    <div class="job-container">
+      <div class="job-row">
+        <div class="job-logo">
+          <img src="/images/mage.jpg" loading="lazy" alt="MAGE Games">
+        </div>
+        <div class="job-details">
+          <h1 class="heading-4"><a href="https://www.linkedin.com/company/magegames" target="_blank" class="link">MAGE Games</a></h1>
+          <h1 class="heading-5">Game Developer, Jan 2023 - Present</h1>
+          <h1 class="location">İzmir, TR</h1>
+          <p>MAGE is a company consisting of sector veterans, enabling game studios to accelerate their production times and create top-tier games.<br><br>→ Technologies: Unity</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="job-container">
+      <div class="job-row">
+        <div class="job-logo">
+          <img src="/images/metazo.png" loading="lazy" alt="Metazo">
+        </div>
+        <div class="job-details">
+          <h1 class="heading-4"><a href="https://www.linkedin.com/company/metazo/" target="_blank" class="link">Metazo</a></h1>
+          <h1 class="heading-5">Software Developer, Mar 2022 - Jan 2023</h1>
+          <h1 class="location">Amsterdam, NL</h1>
+          <p>Metazo is a multi-platform Metaverse project.<br><br>- I am responsible for the preparation of the 3D graphics running on the browser and the development of the game mechanics. <br>- I work on the online interaction of users and the sustainability of this interaction.<br>- I also work actively in the field of optimization of graphics and integration with game engines.<br><br>→ Technologies: PlayCanvas, Unity, Unreal Engine 5, Javascript, WebGL, C#, C++</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="job-container">
+      <div class="job-row">
+        <div class="job-logo">
+          <img src="/images/2medya.png" loading="lazy" alt="2MEDYA">
+        </div>
+        <div class="job-details">
+          <h1 class="heading-4"><a href="https://www.linkedin.com/company/2medya/" target="_blank" class="link">2MEDYA</a></h1>
+          <h1 class="heading-5">Team Lead, Sept 2021 - Mar 2022</h1>
+          <h1 class="location">Istanbul, TR</h1>
+          <p>I was responsible for the management of the hypercasual game development process. <br><br>- I provided the production of the game development team in accordance with agile manifestos. <br>- At the same time, I was actively worked on hypercasual game development and design.<br><br>→ Technologies: Unity, C#, Agile</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="job-container">
+      <div class="job-row">
+        <div class="job-logo">
+          <img src="/images/tiplay.png" loading="lazy" alt="Tiplay">
+        </div>
+        <div class="job-details">
+          <h1 class="heading-4"><a href="https://www.linkedin.com/company/tiplaystudio/" target="_blank" class="link">Tiplay</a></h1>
+          <h1 class="heading-5">Game Developer, Oct 2020 - Sept 2021</h1>
+          <h1 class="location">İzmir, TR</h1>
+          <p>Tiplay studio has 2 games that have ranked US Top Charts Action #1 and US Top Charts Action #5. I have developed dozens of hyper casual games here.<br><br>- I worked as a mentor in the intern program.<br>- I made a casual puzzle game.<br>- I developed hyper casual games and special mechanics. <br><br>→ Technologies: Unity, C#, ShaderLab</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="job-container">
+      <div class="job-row">
+        <div class="job-logo">
+          <img src="/images/eic.png" loading="lazy" alt="Electronic Ice Cream">
+        </div>
+        <div class="job-details">
+          <h1 class="heading-4"><a href="https://www.linkedin.com/company/unavailable/" target="_blank" class="link">Eletronic Ice Cream</a></h1>
+          <h1 class="heading-5">Game Developer, Mar 2020 - Oct 2020</h1>
+          <h1 class="location">Manisa, TR</h1>
+          <p>I was involved in the start-up, which developed a hypercasual game consisting of 4 people, from its establishment to its sale.<br><br>- I took part in a game project that soft launched.<br>- I developed dozens of hyper casual games with different mechanics.<br>- I made level design for games.<br><br>→ Technologies: Unity, C#, ShaderLab</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="job-container">
+      <div class="job-row">
+        <div class="job-logo">
+          <img src="/images/deu.png" loading="lazy" alt="DEU">
+        </div>
+        <div class="job-details">
+          <h1 class="heading-4"><a href="https://www.linkedin.com/school/dokuz-eylul-university/" target="_blank" class="link">Dokuz Eylul University</a></h1>
+          <h1 class="heading-5"><strong>B.S. in Computer Engineering, <em>earned Sept 2017</em></strong></h1>
+          <h1 class="location">İzmir, TR</h1>
+          <p>Dokuz Eylül University has given me many opportunities during my time. It has broadened my worldview and added vision to me.<br><br>My university has allowed me to develop myself in different engineering disciplines thanks to many professors who are experts in their fields. During my education, I strengthened these skills in line with my interest in algorithms and design. At the end of 4 years, I finished this beautiful adventure by completing the Computer Engineering department with the "first prize for the thesis competition" .<br><br>Dokuz Eyül surrounded me with a passion for learning and dozens of inspiring colleagues.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="interest-section">
+    <div class="interest-container">
+      <h1 class="heading-3">My Interests</h1>
+      <div class="interest-row">
+        <div class="interest-column">
+          <img src="/images/unity.png" loading="lazy" alt="Unity" class="interest-icon">
+          <h1 class="interest-title">Unity</h1>
+        </div>
+        <div class="interest-column">
+          <img src="/images/playcanvas.png" loading="lazy" alt="PlayCanvas" class="interest-icon">
+          <h1 class="interest-title">PlayCanvas</h1>
+        </div>
+        <div class="interest-column">
+          <img src="/images/unreal.png" loading="lazy" alt="Unreal Engine" class="interest-icon">
+          <h1 class="interest-title">Unreal Engine</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer-section">
+    <p class="footer-text">© 2025, Mehmedcan, All Rights Reserved.</p>
+  </footer>
 `
 
 new ParticleSystem();

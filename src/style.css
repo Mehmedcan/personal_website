@@ -3,11 +3,10 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0f0f0f;
+  color-scheme: light;
+  color: #1d1d20;
+  background-color: #f5f5f6;
 
-  font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -19,7 +18,10 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #0f0f0f;
+  background-color: #f5f5f6;
+  overflow-y: auto;
+  /* Allow scrolling now */
+  overflow-x: hidden;
 }
 
 #app {
@@ -28,11 +30,11 @@ body {
   padding: 0;
   text-align: center;
   width: 100%;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
+  height: auto;
+  /* Changed from 100vh to fit content */
+  display: block;
+  /* Changed from flex to block to allow stacking */
+  overflow-x: hidden;
 }
 
 .container {
@@ -44,84 +46,80 @@ body {
   animation: fadeIn 1s ease-out;
   position: relative;
   z-index: 10;
+  min-height: 100vh;
+  /* Changed from height to min-height */
+  padding-bottom: 10vh;
+  /* Shift content up slightly for better centering */
+}
+
+.emoji-line {
+  font-size: clamp(2rem, 2vw, 3rem);
+  margin-bottom: 0.2rem;
+  display: inline-block;
+}
+
+.intro-text {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(1.2rem, 1.5vw, 2rem);
+  font-style: italic;
+  font-weight: 500;
+  color: #1d1d20;
+  margin: 0;
+  margin-bottom: -0.5vw;
+  opacity: 0.8;
 }
 
 .title {
   font-family: 'Outfit', sans-serif;
-  font-size: 7vw;
+  font-size: clamp(2.5rem, 5.25vw, 6rem);
   line-height: 1.1;
   padding-top: 0.1em;
   padding-bottom: 0.1em;
   font-weight: 600;
-  /* Semi-bold to match top text of reference */
   white-space: nowrap;
   margin: 0;
-  background: linear-gradient(to right, #646cff, #9089fc);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #1d1d20;
   letter-spacing: -0.02em;
-  /* Tighter tracking for modern look */
-  text-shadow: 0 0 30px rgba(100, 108, 255, 0.2);
-}
-
-.subtitle {
-  font-family: 'Outfit', sans-serif;
-  font-size: 3.25vw;
-  line-height: 1.2;
-  font-weight: 400;
-  /* Regular weight for bottom text */
-  margin-top: -1vw;
-  letter-spacing: -0.01em;
-  background: linear-gradient(to right, #646cff, #9089fc);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  /* Removed outline stroke to match the clean filled text of reference */
-  -webkit-text-stroke: 0;
-  text-shadow: 0 0 20px rgba(100, 108, 255, 0.1);
-  opacity: 0.9;
 }
 
 /* --- Social Links --- */
 .social-links {
   display: flex;
   justify-content: center;
-  gap: 12rem;
-  /* Reduced by 20% (15 -> 12) */
-  margin-top: -3rem;
-  /* Closer */
+  gap: clamp(2rem, 10vw, 12rem);
+  /* More aggressive responsive gap */
+  margin-top: 2rem;
   z-index: 20;
 }
 
 .social-links a {
-  color: white;
+  color: #8c8c95;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 58px;
-  height: 58px;
-  border: 4px solid white;
-  /* Circular border */
-  border-radius: 50%;
+  width: clamp(35px, 5vw, 58px);
+  /* More aggressive scaling */
+  height: clamp(35px, 5vw, 58px);
+  border: 3px solid #8c8c95;
+  border-radius: 35%;
   background-color: transparent;
 }
 
 .social-links a svg {
-  width: 29px;
-  height: 29px;
+  width: clamp(18px, 2.5vw, 29px);
+  /* More aggressive SVG scaling */
+  height: clamp(18px, 2.5vw, 29px);
   stroke: currentColor;
   stroke-width: 1.5;
 }
 
-/* Hover effect */
+/* Hover effect with text color instead of purple */
 .social-links a:hover {
-  color: #9089fc;
-  border-color: #9089fc;
+  color: #1d1d20;
+  border-color: #1d1d20;
   transform: translateY(-5px);
-  box-shadow: 0 0 20px rgba(144, 137, 252, 0.4);
-  /* Glow effect */
+  box-shadow: 0 0 20px rgba(29, 29, 32, 0.2);
 }
 
 @keyframes fadeIn {
@@ -149,4 +147,219 @@ body {
   .title {
     text-shadow: 0 0 30px rgba(100, 108, 255, 0.1);
   }
+}
+
+/* --- Resume Section --- */
+.resume-section {
+  position: relative;
+  z-index: 30;
+  /* Above particles */
+  background-color: rgba(245, 245, 246, 0.15);
+  /* Theme color with transparency */
+  backdrop-filter: blur(3px);
+  /* Minimal blur */
+  -webkit-backdrop-filter: blur(3px);
+  width: 100%;
+  max-width: 1000px;
+  /* Scaled ~1.25x (800 -> 1000) */
+  margin: 0 auto;
+  text-align: left;
+  border-radius: 20px;
+  margin-top: 100px;
+}
+
+.heading-3 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1d1d20;
+  margin-bottom: 3rem;
+  margin-top: 2rem;
+  margin-left: 0;
+  margin-right: 0;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 1rem;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+  width: 100%;
+}
+
+.job-container {
+  margin-bottom: 3rem;
+}
+
+.job-row {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  padding: 0 10px;
+  /* Always maintain side padding */
+}
+
+.job-logo {
+  flex-shrink: 0;
+  width: 150px;
+  height: 150px;
+}
+
+.job-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 35%;
+  /* Circle logos */
+}
+
+.job-details {
+  flex: 1;
+}
+
+.heading-4 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.2rem 0;
+}
+
+.heading-4 a {
+  color: #3b82f6;
+  /* Link color blueish */
+  text-decoration: none;
+}
+
+.heading-4 a:hover {
+  text-decoration: underline;
+}
+
+.heading-5 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  /* Green bold part in image */
+  color: #65a30d;
+  /* Greenish */
+  margin: 0 0 0.2rem 0;
+}
+
+.location {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1d1d20;
+  margin: 0 0 1rem 0;
+}
+
+.job-details p {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .job-row {
+    flex-direction: column;
+  }
+}
+
+/* --- My Interests Section --- */
+.interest-section {
+  position: relative;
+  z-index: 30;
+  background-color: rgba(245, 245, 246, 0.15);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  width: 100%;
+  max-width: 1000px;
+  /* Match resume-section */
+  margin: 100px auto 0 auto;
+  text-align: center;
+  border-radius: 20px;
+}
+
+.interest-container {
+  width: 100%;
+  padding: 0;
+}
+
+.interest-row {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  gap: 2rem;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+
+.interest-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 0 1 auto;
+}
+
+.interest-icon {
+  width: 256px;
+  height: 256px;
+  object-fit: cover;
+  border-radius: 50%;
+  transition: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.interest-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1d1d20;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .interest-row {
+    gap: 2rem;
+    justify-content: center;
+  }
+
+  .interest-icon {
+    width: 150px;
+    height: 150px;
+  }
+
+  .interest-title {
+    font-size: 1.2rem;
+  }
+
+  .interest-column {
+    width: 100%;
+    /* Full width on mobile - stack vertically */
+  }
+}
+
+@media (max-width: 900px) {
+
+  /* Stack interest columns vertically when 3 don't fit comfortably */
+  .interest-column {
+    width: 100%;
+  }
+}
+
+/* --- Footer Section --- */
+.footer-section {
+  position: relative;
+  z-index: 30;
+  width: 100%;
+  padding-bottom: 20px;
+  text-align: center;
+  margin-top: 50px;
+}
+
+.footer-text {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  color: #8c8c95;
+  margin: 0;
+  opacity: 0.8;
 }
