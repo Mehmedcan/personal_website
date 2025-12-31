@@ -188,7 +188,7 @@ if (!isMobile) {
   let targetY = 0;
   let currentX = 0;
   let currentY = 0;
-  const LERP_FACTOR = 0.1;
+  const LERP_FACTOR = 0.15;
 
   // Scroll kontrolü için değişkenler
   let isPinching = false;
@@ -198,7 +198,7 @@ if (!isMobile) {
   let scrollVelocityY = 0;
   const SCROLL_SENSITIVITY = 80;
   const HAND_SENSITIVITY = 2;
-  const PINCH_SCROLL_THRESHOLD = 150;
+  const PINCH_SCROLL_THRESHOLD = 75;
   const FRICTION = 0.96;
 
   let animationRunning = false;

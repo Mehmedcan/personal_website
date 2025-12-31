@@ -44,7 +44,7 @@ export class HandTracker {
         );
 
         // Pinch eşik değeri
-        const PINCH_THRESHOLD = 0.06;
+        const PINCH_THRESHOLD = 0.04;
         const isPinching = distance < PINCH_THRESHOLD;
 
         const handPosition = {
