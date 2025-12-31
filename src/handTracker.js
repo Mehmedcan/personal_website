@@ -30,25 +30,27 @@ export class HandTracker {
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         const landmarks = results.multiHandLandmarks[0];
 
-        // İşaret parmağı ucu (landmarks[8]) pozisyonu
+        // Parmak indeksleri: 4: Baş parmak, 8: İşaret parmağı, 12: Orta parmak
+        const TRACKED_FINGER_INDEX = 12; // Artık orta parmağı takip ediyor
+
+        const trackedTip = landmarks[TRACKED_FINGER_INDEX];
         const indexTip = landmarks[8];
-        // Baş parmak ucu (landmarks[4]) pozisyonu
         const thumbTip = landmarks[4];
 
-        // Pinch algılama: baş parmak ve işaret parmağı arasındaki mesafe
+        // Pinch algılama: baş parmak ve işaret parmağı arasındaki mesafe (değişmedi)
         const distance = Math.sqrt(
           Math.pow(thumbTip.x - indexTip.x, 2) +
           Math.pow(thumbTip.y - indexTip.y, 2)
         );
 
-        // Pinch eşik değeri (deneysel olarak ayarlandı)
+        // Pinch eşik değeri
         const PINCH_THRESHOLD = 0.06;
         const isPinching = distance < PINCH_THRESHOLD;
 
         const handPosition = {
-          x: indexTip.x,
-          y: indexTip.y,
-          z: indexTip.z,
+          x: trackedTip.x, // Takip edilen parmak pozisyonu
+          y: trackedTip.y,
+          z: trackedTip.z,
           isPinching: isPinching,
           pinchDistance: distance
         };

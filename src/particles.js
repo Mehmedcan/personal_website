@@ -14,6 +14,7 @@ export class ParticleSystem {
         this.targetMouseY = 0;
         this.currentMouseX = 0;
         this.currentMouseY = 0;
+        this.isGestureActive = false; // El hareketi kontrolü aktif mi?
         this.time = 0;
 
         this.init();
@@ -50,13 +51,13 @@ export class ParticleSystem {
         // Add hover listeners for 'gathering' effect - track each button individually
         this.isHovering = false;
         this.buttons.forEach((btn, index) => {
-            btn.addEventListener('mouseenter', () => { 
+            btn.addEventListener('mouseenter', () => {
                 this.isHovering = true;
                 if (this.buttonsData[index]) {
                     this.buttonsData[index].isHovered = true;
                 }
             });
-            btn.addEventListener('mouseleave', () => { 
+            btn.addEventListener('mouseleave', () => {
                 this.isHovering = false;
                 if (this.buttonsData[index]) {
                     this.buttonsData[index].isHovered = false;
@@ -72,7 +73,7 @@ export class ParticleSystem {
 
         this.forceMultiplier = 1; // 1 = repulsion, negative = attraction
         this.currentVisibilityRadius = 750; // Dynamic visibility radius
-        
+
         // Scroll-based visibility control
         this.containerElement = document.querySelector('.container');
         this.resumeSectionElement = document.querySelector('.resume-section');
@@ -91,13 +92,23 @@ export class ParticleSystem {
         });
         window.addEventListener('scroll', () => {
             this.updateScrollVisibility();
+            this.updateButtonPositions(); // Scroll olduğunda buton pozisyonlarını güncelle
         });
-        
+
         // Initial visibility check
         this.updateScrollVisibility();
 
         this.createParticles();
         this.animate();
+    }
+
+    setTarget(x, y) {
+        this.targetMouseX = x;
+        this.targetMouseY = y;
+    }
+
+    setIsGestureActive(active) {
+        this.isGestureActive = active;
     }
 
     updateButtonPositions() {
@@ -124,16 +135,16 @@ export class ParticleSystem {
         const containerRect = this.containerElement.getBoundingClientRect();
         const resumeRect = this.resumeSectionElement.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
-        
+
         // Check if container is still visible in viewport
         const containerBottom = containerRect.bottom;
         const resumeTop = resumeRect.top;
-        
+
         // Start fading when resume section starts entering viewport
         // Fade out completely when resume section reaches middle of viewport
         const fadeStartPoint = viewportHeight * 0.7; // Start fading when resume is 70% from top
         const fadeEndPoint = viewportHeight * 0.5; // Fully faded when resume reaches middle of viewport (50%)
-        
+
         if (resumeTop < fadeStartPoint) {
             // Resume section is entering viewport, fade out particles
             if (resumeTop <= fadeEndPoint) {
@@ -198,8 +209,16 @@ export class ParticleSystem {
         // Update scroll visibility multiplier with smooth lerp
         this.scrollVisibilityMultiplier += (this.targetScrollVisibility - this.scrollVisibilityMultiplier) * 0.1;
 
-        this.currentMouseX += (this.targetMouseX - this.currentMouseX) * 0.1;
-        this.currentMouseY += (this.targetMouseY - this.currentMouseY) * 0.1;
+        if (this.isGestureActive) {
+            // Main.js zaten lerp yaptığı için burada doğrudan eşitliyoruz (çifte yumuşatmayı önlemek için)
+            this.currentMouseX = this.targetMouseX;
+            this.currentMouseY = this.targetMouseY;
+            // Pozisyonları her frame'de güncellemek gesture hassasiyetini artırır
+            this.updateButtonPositions();
+        } else {
+            this.currentMouseX += (this.targetMouseX - this.currentMouseX) * 0.1;
+            this.currentMouseY += (this.targetMouseY - this.currentMouseY) * 0.1;
+        }
 
         const pushRadius = 600;
 
@@ -212,6 +231,40 @@ export class ParticleSystem {
         const buttonVisibilityRadius = 550;
 
         if (this.buttonsData) {
+            // Eğer gesture aktifse, butonların hover durumunu koordinatlara göre biz belirleyelim
+            if (this.isGestureActive) {
+                let anyHovered = false;
+                this.buttonsData.forEach((btnData, index) => {
+                    const rect = btnData.element.getBoundingClientRect();
+                    const isInside = (
+                        this.currentMouseX >= rect.left &&
+                        this.currentMouseX <= rect.right &&
+                        this.currentMouseY >= rect.top &&
+                        this.currentMouseY <= rect.bottom
+                    );
+
+                    if (isInside) {
+                        if (!btnData.isHovered) {
+                            btnData.isHovered = true;
+                            btnData.element.classList.add('gesture-hover');
+                        }
+                        anyHovered = true;
+                    } else {
+                        if (btnData.isHovered) {
+                            btnData.isHovered = false;
+                            btnData.element.classList.remove('gesture-hover');
+                            // Reset circleState for particles
+                            this.particles.forEach(p => {
+                                if (p.circleState && p.circleState.buttonIndex === index) {
+                                    p.circleState = null;
+                                }
+                            });
+                        }
+                    }
+                });
+                this.isHovering = anyHovered;
+            }
+
             this.buttonsData.forEach(btnData => {
                 const dx = this.currentMouseX - btnData.x;
                 const dy = this.currentMouseY - btnData.y;
@@ -272,11 +325,11 @@ export class ParticleSystem {
                             const btnCenterX = btnRect.left + btnRect.width / 2;
                             const btnCenterY = btnRect.top + btnRect.height / 2;
                             const btnRadius = btnRect.width * CIRCLE_RADIUS_MULTIPLIER;
-                            
+
                             const btnDx = currentAnimX - btnCenterX;
                             const btnDy = currentAnimY - btnCenterY;
                             const btnDistance = Math.sqrt(btnDx * btnDx + btnDy * btnDy);
-                            
+
                             if (btnDistance <= btnRadius) {
                                 insideCircle = true;
                                 hoveredButtonData = {
@@ -299,7 +352,7 @@ export class ParticleSystem {
                         const btnDx = currentAnimX - hoveredButtonData.x;
                         const btnDy = currentAnimY - hoveredButtonData.y;
                         const initialAngle = Math.atan2(btnDy, btnDx);
-                        
+
                         p.circleState = {
                             buttonIndex: buttonIndex,
                             angle: initialAngle,
@@ -339,7 +392,7 @@ export class ParticleSystem {
                         p.circleLerpProgress = 0;
                     }
                 }
-                
+
                 // Get real-time button position for circle animation (if particle is in circle)
                 let realTimeButtonData = null;
                 if (p.circleState && this.buttons[p.circleState.buttonIndex]) {
@@ -368,16 +421,16 @@ export class ParticleSystem {
                 let circleX = normalX;
                 let circleY = normalY;
                 let circleAngle = normalAngle;
-                
+
                 if (p.circleState && realTimeButtonData) {
                     // Circle animation: place particle on circle edge and rotate with polish offsets
                     // Use real-time button position for accurate circle positioning
                     const effectiveRadius = realTimeButtonData.radius + p.circleRadiusOffset;
                     const effectiveAngle = p.circleState.angle + p.circleAngleOffset;
-                    
+
                     circleX = realTimeButtonData.x + effectiveRadius * Math.cos(effectiveAngle);
                     circleY = realTimeButtonData.y + effectiveRadius * Math.sin(effectiveAngle);
-                    
+
                     // Particle should point tangentially to the circle (perpendicular to radius)
                     circleAngle = effectiveAngle + Math.PI / 2; // 90 degrees offset for tangent
                 }
@@ -386,7 +439,7 @@ export class ParticleSystem {
                 const lerp = p.circleLerpProgress;
                 const currentX = normalX + (circleX - normalX) * lerp;
                 const currentY = normalY + (circleY - normalY) * lerp;
-                
+
                 // Lerp angle (handle angle wrapping)
                 let particleAngle;
                 let angleDiff = circleAngle - normalAngle;

@@ -34,7 +34,9 @@ document.querySelector('#app').innerHTML = `
     <div class="job-container">
       <div class="job-row">
         <div class="job-logo">
-          <img src="/images/mage.jpg" loading="lazy" alt="MAGE Games">
+          <a href="https://www.linkedin.com/company/magegames" target="_blank">
+            <img src="/images/mage.jpg" loading="lazy" alt="MAGE Games">
+          </a>
         </div>
         <div class="job-details">
           <h1 class="heading-4"><a href="https://www.linkedin.com/company/magegames" target="_blank" class="link">MAGE Games</a></h1>
@@ -48,7 +50,9 @@ document.querySelector('#app').innerHTML = `
     <div class="job-container">
       <div class="job-row">
         <div class="job-logo">
-          <img src="/images/metazo.png" loading="lazy" alt="Metazo">
+          <a href="https://www.linkedin.com/company/metazo/" target="_blank">
+            <img src="/images/metazo.png" loading="lazy" alt="Metazo">
+          </a>
         </div>
         <div class="job-details">
           <h1 class="heading-4"><a href="https://www.linkedin.com/company/metazo/" target="_blank" class="link">Metazo</a></h1>
@@ -62,7 +66,9 @@ document.querySelector('#app').innerHTML = `
     <div class="job-container">
       <div class="job-row">
         <div class="job-logo">
-          <img src="/images/2medya.png" loading="lazy" alt="2MEDYA">
+          <a href="https://www.linkedin.com/company/2medya/" target="_blank">
+            <img src="/images/2medya.png" loading="lazy" alt="2MEDYA">
+          </a>
         </div>
         <div class="job-details">
           <h1 class="heading-4"><a href="https://www.linkedin.com/company/2medya/" target="_blank" class="link">2MEDYA</a></h1>
@@ -76,7 +82,9 @@ document.querySelector('#app').innerHTML = `
     <div class="job-container">
       <div class="job-row">
         <div class="job-logo">
-          <img src="/images/tiplay.png" loading="lazy" alt="Tiplay">
+          <a href="https://www.linkedin.com/company/tiplaystudio/" target="_blank">
+            <img src="/images/tiplay.png" loading="lazy" alt="Tiplay">
+          </a>
         </div>
         <div class="job-details">
           <h1 class="heading-4"><a href="https://www.linkedin.com/company/tiplaystudio/" target="_blank" class="link">Tiplay</a></h1>
@@ -90,7 +98,9 @@ document.querySelector('#app').innerHTML = `
     <div class="job-container">
       <div class="job-row">
         <div class="job-logo">
-          <img src="/images/eic.png" loading="lazy" alt="Electronic Ice Cream">
+          <a href="https://www.linkedin.com/company/unavailable/" target="_blank">
+            <img src="/images/eic.png" loading="lazy" alt="Electronic Ice Cream">
+          </a>
         </div>
         <div class="job-details">
           <h1 class="heading-4"><a href="https://www.linkedin.com/company/unavailable/" target="_blank" class="link">Eletronic Ice Cream</a></h1>
@@ -104,7 +114,9 @@ document.querySelector('#app').innerHTML = `
     <div class="job-container">
       <div class="job-row">
         <div class="job-logo">
-          <img src="/images/deu.png" loading="lazy" alt="DEU">
+          <a href="https://www.linkedin.com/school/dokuz-eylul-university/" target="_blank">
+            <img src="/images/deu.png" loading="lazy" alt="DEU">
+          </a>
         </div>
         <div class="job-details">
           <h1 class="heading-4"><a href="https://www.linkedin.com/school/dokuz-eylul-university/" target="_blank" class="link">Dokuz Eylul University</a></h1>
@@ -145,7 +157,7 @@ document.querySelector('#app').innerHTML = `
   <button id="stop-gesture" class="gesture-btn stop" style="display: none;">Stop Gesture Control</button>
 `
 
-new ParticleSystem();
+const particles = new ParticleSystem();
 
 const cursor = document.getElementById('custom-cursor');
 const startBtn = document.getElementById('start-gesture');
@@ -162,10 +174,15 @@ const LERP_FACTOR = 0.1; // Smooth hareket için lerp faktörü
 let isPinching = false;
 let pinchStartY = null;
 let lastScrollY = null;
-const SCROLL_SENSITIVITY = 100; // Scroll hassasiyeti
+const SCROLL_SENSITIVITY = 80; // Scroll hassasiyeti
 const HAND_SENSITIVITY = 2; // El hareketi hassasiyeti (1:1 mapping)
+const PINCH_SCROLL_THRESHOLD = 150; // Scroll başlaması için gereken hareket (piksel)
 let scrollVelocityY = 0; // Momentum için hız
 const FRICTION = 0.96; // Fiziksel yavaşlama için sürtünme katsayısı
+
+let pinchInitialX = null;
+let pinchInitialY = null;
+let isPinchScrolling = false;
 
 // Animasyon döngüsü
 let animationRunning = false;
@@ -183,8 +200,11 @@ function animate() {
   cursor.style.left = `${currentX}px`;
   cursor.style.top = `${currentY}px`;
 
+  // Particle sistemini gesture cursor'ına odakla
+  particles.setTarget(currentX, currentY);
+
   // Scroll kontrolü
-  if (isPinching) {
+  if (isPinching && isPinchScrolling) {
     // El hareketi yerine smooth indikatörün (currentY) değişimini takip et
     // Bu sayede scroll hareketi "tıkır tıkır" değil, akıcı olur.
     const deltaY = (prevY - currentY) * (SCROLL_SENSITIVITY / 100);
@@ -225,15 +245,59 @@ const tracker = new HandTracker((handPos) => {
     cursor.classList.add('pinching');
 
     if (!isPinching) {
-      // Pinch yeni başladıysa hızı sıfırla
+      // Pinch yeni başladıysa hızı ve başlangıç pozisyonunu sıfırla
       scrollVelocityY = 0;
+      pinchInitialX = currentX;
+      pinchInitialY = currentY;
+      isPinchScrolling = false;
+    } else if (!isPinchScrolling) {
+      // Hareket threshold'u geçti mi kontrol et
+      const dx = currentX - pinchInitialX;
+      const dy = currentY - pinchInitialY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist > PINCH_SCROLL_THRESHOLD) {
+        isPinchScrolling = true;
+      }
     }
 
     isPinching = true;
   } else {
+    // Pinch bırakıldığında eğer scroll başlamadıysa bu bir click'tir
+    if (isPinching && !isPinchScrolling) {
+      // Önce direkt element'i dene
+      let targetElement = document.elementFromPoint(currentX, currentY);
+
+      // Eğer bulunamadıysa (opacity vs yüzünden), sosyal butonları manuel kontrol et
+      if (!targetElement || !targetElement.closest('a')) {
+        const buttons = document.querySelectorAll('.social-links a');
+        for (const btn of buttons) {
+          const rect = btn.getBoundingClientRect();
+          if (currentX >= rect.left && currentX <= rect.right &&
+            currentY >= rect.top && currentY <= rect.bottom) {
+            targetElement = btn;
+            break;
+          }
+        }
+      }
+
+      if (targetElement) {
+        console.log('Gesture Click:', targetElement);
+        // Eğer link ise ve target="_blank" ise window.open daha güvenli olabilir
+        const link = targetElement.closest('a');
+        if (link && link.href) {
+          window.open(link.href, link.target || '_self');
+        } else {
+          targetElement.click();
+        }
+      }
+    }
+
     cursor.classList.remove('pinching');
     isPinching = false;
-    // Not: scrollVelocityY sıfırlanmıyor, animate fonksiyonu momentumu sürdürür
+    isPinchScrolling = false;
+    pinchInitialX = null;
+    pinchInitialY = null;
   }
 });
 
@@ -241,6 +305,9 @@ startBtn.addEventListener('click', async () => {
   await tracker.start();
   startBtn.style.display = 'none';
   stopBtn.style.display = 'block';
+
+  // Particle sistemini gesture moduna geçir
+  particles.setIsGestureActive(true);
 
   // Animasyon döngüsünü başlat
   animationRunning = true;
@@ -257,9 +324,13 @@ stopBtn.addEventListener('click', () => {
   cursor.classList.remove('pinching');
   animationRunning = false;
 
+  // Particle sistemini mouse moduna geri döndür
+  particles.setIsGestureActive(false);
+
   // State'i sıfırla
-  pinchStartY = null;
-  lastScrollY = null;
+  pinchInitialX = null;
+  pinchInitialY = null;
+  isPinchScrolling = false;
   isPinching = false;
   scrollVelocityY = 0;
 });
