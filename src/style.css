@@ -363,3 +363,58 @@ body {
   margin: 0;
   opacity: 0.8;
 }
+/* Custom Cursor & Gesture UI */
+#custom-cursor {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  background: rgba(243, 50, 95, 0.6); /* #F3325F */
+  border: 2px solid white;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10000;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 15px rgba(243, 50, 95, 0.4);
+  display: none;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+#custom-cursor.pinching {
+  background: rgba(49, 243, 133, 0.7); /* #31F385 */
+  box-shadow: 0 0 20px rgba(49, 243, 133, 0.5);
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+.gesture-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 24px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 10001;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s ease;
+}
+
+.gesture-btn:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.gesture-btn.stop {
+  background: rgba(243, 50, 95, 0.6); /* Soluk kırmızı */
+  box-shadow: 0 4px 12px rgba(243, 50, 95, 0.3);
+}
+
+.gesture-btn.stop:hover {
+  background: rgba(243, 50, 95, 0.8);
+  box-shadow: 0 6px 16px rgba(243, 50, 95, 0.4);
+}
+

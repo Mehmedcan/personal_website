@@ -1,5 +1,6 @@
 import './style.css'
 import { ParticleSystem } from './particles.js'
+import { HandTracker } from './handTracker.js'
 
 document.querySelector('#app').innerHTML = `
   <div class="container">
@@ -138,6 +139,127 @@ document.querySelector('#app').innerHTML = `
   <footer class="footer-section">
     <p class="footer-text">© 2025, Mehmedcan, All Rights Reserved.</p>
   </footer>
+
+  <div id="custom-cursor"></div>
+  <button id="start-gesture" class="gesture-btn">Start Gesture Control</button>
+  <button id="stop-gesture" class="gesture-btn stop" style="display: none;">Stop Gesture Control</button>
 `
 
 new ParticleSystem();
+
+const cursor = document.getElementById('custom-cursor');
+const startBtn = document.getElementById('start-gesture');
+const stopBtn = document.getElementById('stop-gesture');
+
+// Lerp animasyonu için değişkenler
+let targetX = 0;
+let targetY = 0;
+let currentX = 0;
+let currentY = 0;
+const LERP_FACTOR = 0.1; // Smooth hareket için lerp faktörü
+
+// Scroll kontrolü için değişkenler
+let isPinching = false;
+let pinchStartY = null;
+let lastScrollY = null;
+const SCROLL_SENSITIVITY = 100; // Scroll hassasiyeti
+const HAND_SENSITIVITY = 2; // El hareketi hassasiyeti (1:1 mapping)
+let scrollVelocityY = 0; // Momentum için hız
+const FRICTION = 0.96; // Fiziksel yavaşlama için sürtünme katsayısı
+
+// Animasyon döngüsü
+let animationRunning = false;
+
+function animate() {
+  if (!animationRunning) return;
+
+  // Önceki smooth pozisyonu sakla
+  const prevY = currentY;
+
+  // Lerp ile smooth pozisyon güncellemesi (indikatör hareketi)
+  currentX += (targetX - currentX) * LERP_FACTOR;
+  currentY += (targetY - currentY) * LERP_FACTOR;
+
+  cursor.style.left = `${currentX}px`;
+  cursor.style.top = `${currentY}px`;
+
+  // Scroll kontrolü
+  if (isPinching) {
+    // El hareketi yerine smooth indikatörün (currentY) değişimini takip et
+    // Bu sayede scroll hareketi "tıkır tıkır" değil, akıcı olur.
+    const deltaY = (prevY - currentY) * (SCROLL_SENSITIVITY / 100);
+
+    if (Math.abs(deltaY) > 0.01) {
+      window.scrollBy(0, deltaY);
+      scrollVelocityY = deltaY; // Momentum için son hızı kaydet
+    }
+  } else if (Math.abs(scrollVelocityY) > 0.1) {
+    // Momentum scroll: pinch bırakıldığında devam eden hareket
+    window.scrollBy(0, scrollVelocityY);
+    scrollVelocityY *= FRICTION;
+  }
+
+  requestAnimationFrame(animate);
+}
+
+const tracker = new HandTracker((handPos) => {
+  // Mirror fix: x koordinatını ters çevir (1 - x)
+  const mirroredX = 1 - handPos.x;
+
+  // Ekran koordinatlarına çevir ve hassasiyeti (HAND_SENSITIVITY) uygula
+  // Merkez noktayı (0.5) baz alarak hareketi ölçeklendiriyoruz
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+
+  const screenX = centerX + (mirroredX - 0.5) * window.innerWidth * HAND_SENSITIVITY;
+  const screenY = centerY + (handPos.y - 0.5) * window.innerHeight * HAND_SENSITIVITY;
+
+  // Hedef pozisyonu güncelle (lerp animasyonu bunu smooth yapacak)
+  targetX = screenX;
+  targetY = screenY;
+
+  cursor.style.display = 'block';
+
+  // Pinch durumuna göre renk değiştir
+  if (handPos.isPinching) {
+    cursor.classList.add('pinching');
+
+    if (!isPinching) {
+      // Pinch yeni başladıysa hızı sıfırla
+      scrollVelocityY = 0;
+    }
+
+    isPinching = true;
+  } else {
+    cursor.classList.remove('pinching');
+    isPinching = false;
+    // Not: scrollVelocityY sıfırlanmıyor, animate fonksiyonu momentumu sürdürür
+  }
+});
+
+startBtn.addEventListener('click', async () => {
+  await tracker.start();
+  startBtn.style.display = 'none';
+  stopBtn.style.display = 'block';
+
+  // Animasyon döngüsünü başlat
+  animationRunning = true;
+  animate();
+});
+
+stopBtn.addEventListener('click', () => {
+  tracker.stop();
+  stopBtn.style.display = 'none';
+  startBtn.style.display = 'block';
+
+  // Cursor'u gizle ve animasyonu durdur
+  cursor.style.display = 'none';
+  cursor.classList.remove('pinching');
+  animationRunning = false;
+
+  // State'i sıfırla
+  pinchStartY = null;
+  lastScrollY = null;
+  isPinching = false;
+  scrollVelocityY = 0;
+});
