@@ -22,7 +22,7 @@ export class ParticleSystem {
 
     init() {
         // Detect mobile devices
-        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 1024;
 
         // If mobile, don't initialize particles
         if (this.isMobile) {
