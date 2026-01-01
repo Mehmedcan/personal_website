@@ -11,9 +11,9 @@ export const gamesTemplate = `
       <span class="toggle-text">Play Games</span>
     </button>
     <div class="games-list">
-      <button class="game-item-btn" data-game="tetris">
-        <span class="game-icon">🧱</span>
-        <span class="game-label">Tetris</span>
+      <button class="game-item-btn" data-game="save-the-emoji">
+        <span class="game-icon">👋</span>
+        <span class="game-label">Save the Emoji</span>
       </button>
       <button class="game-item-btn" data-game="snake">
         <span class="game-icon">🐍</span>

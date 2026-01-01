@@ -84,8 +84,33 @@ export class GamesMenu {
             // Create close button (same position as theme toggle)
             this.createCloseButton();
 
+            // Game-specific: Save the Emoji requires dark theme
+            if (game === 'save-the-emoji') {
+                this.initSaveTheEmoji();
+            }
+
             console.log(`Game started: ${game}`);
         }, 500);
+    }
+
+    /**
+     * Save the Emoji game-specific initialization
+     * Switches to dark theme for this game only
+     */
+    initSaveTheEmoji() {
+        // Save current theme to restore later
+        this.previousTheme = document.documentElement.getAttribute('data-theme') || 'light';
+
+        // Switch to dark theme for this game
+        document.documentElement.setAttribute('data-theme', 'dark');
+
+        // Update theme toggle button state (for when game closes)
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.classList.add('theme-toggle--toggled');
+        }
+
+        console.log('Save the Emoji: Switched to dark mode');
     }
 
     createCloseButton() {
@@ -104,6 +129,8 @@ export class GamesMenu {
     closeGame() {
         if (!this.isGameActive) return;
 
+        const wasPlayingSaveTheEmoji = this.currentGame === 'save-the-emoji';
+
         this.isGameActive = false;
         this.currentGame = null;
 
@@ -118,6 +145,16 @@ export class GamesMenu {
         const themeToggle = document.getElementById('theme-toggle');
         if (themeToggle) {
             themeToggle.style.display = 'flex';
+        }
+
+        // Game-specific: Restore previous theme for Save the Emoji
+        if (wasPlayingSaveTheEmoji && this.previousTheme) {
+            document.documentElement.setAttribute('data-theme', this.previousTheme);
+            if (themeToggle) {
+                themeToggle.classList.toggle('theme-toggle--toggled', this.previousTheme === 'dark');
+            }
+            this.previousTheme = null;
+            console.log('Save the Emoji: Restored previous theme');
         }
 
         // Show games menu
