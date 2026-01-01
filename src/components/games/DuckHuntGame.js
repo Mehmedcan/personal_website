@@ -431,14 +431,14 @@ export class DuckHuntGame {
             padding: 0 16px;
             border-radius: 12px;
             background-color: rgba(255, 255, 255, 0.9);
-            border: 2px solid rgba(59, 130, 246, 0.6);
+            border: 2px solid rgba(243, 50, 95, 0.6);
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 12px;
             z-index: 10002;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            box-shadow: 0 4px 12px rgba(243, 50, 95, 0.15);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
         `;
@@ -449,7 +449,7 @@ export class DuckHuntGame {
             font-family: 'Outfit', sans-serif;
             font-weight: 600;
             font-size: 14px;
-            color: rgba(59, 130, 246, 0.9);
+            color: rgba(243, 50, 95, 0.9);
             transition: color 0.3s ease;
         `;
         label.textContent = 'NES Flash';
@@ -460,7 +460,7 @@ export class DuckHuntGame {
         toggleTrack.style.cssText = `
             width: 40px;
             height: 22px;
-            background: rgba(59, 130, 246, 0.3);
+            background: rgba(243, 50, 95, 0.3);
             border-radius: 11px;
             position: relative;
             transition: background 0.3s ease;
@@ -472,7 +472,7 @@ export class DuckHuntGame {
         toggleKnob.style.cssText = `
             width: 18px;
             height: 18px;
-            background: rgba(59, 130, 246, 1);
+            background: rgba(243, 50, 95, 1);
             border-radius: 50%;
             position: absolute;
             top: 2px;
@@ -501,12 +501,12 @@ export class DuckHuntGame {
 
         if (this.flashEnabled) {
             // ON state
-            this.flashToggleBtn.style.borderColor = 'rgba(59, 130, 246, 0.6)';
-            this.flashToggleBtn.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';
-            this.flashLabel.style.color = 'rgba(59, 130, 246, 0.9)';
-            this.toggleTrack.style.background = 'rgba(59, 130, 246, 0.3)';
+            this.flashToggleBtn.style.borderColor = 'rgba(243, 50, 95, 0.6)';
+            this.flashToggleBtn.style.boxShadow = '0 4px 12px rgba(243, 50, 95, 0.15)';
+            this.flashLabel.style.color = 'rgba(243, 50, 95, 0.9)';
+            this.toggleTrack.style.background = 'rgba(243, 50, 95, 0.3)';
             this.toggleKnob.style.left = '20px';
-            this.toggleKnob.style.background = 'rgba(59, 130, 246, 1)';
+            this.toggleKnob.style.background = 'rgba(243, 50, 95, 1)';
         } else {
             // OFF state
             this.flashToggleBtn.style.borderColor = 'rgba(156, 163, 175, 0.6)';
