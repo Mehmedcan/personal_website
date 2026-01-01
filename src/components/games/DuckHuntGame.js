@@ -7,6 +7,8 @@ export class DuckHuntGame {
     constructor() {
         this.isActive = false;
         this.backgroundElement = null;
+        this.leftGrass = null;
+        this.rightGrass = null;
         this.container = null;
     }
 
@@ -135,7 +137,7 @@ export class DuckHuntGame {
         // Get title's bounding box AFTER zoom animation
         const titleRect = title.getBoundingClientRect();
 
-        // Create background element
+        // Create main background element
         this.backgroundElement = document.createElement('div');
         this.backgroundElement.className = 'duck-hunt-background';
         this.backgroundElement.style.cssText = `
@@ -147,7 +149,7 @@ export class DuckHuntGame {
             pointer-events: none;
         `;
 
-        // Create the image
+        // Create the main image
         const img = document.createElement('img');
         img.src = '/images/duck-hunt-background.png';
         img.alt = 'Duck Hunt Background';
@@ -166,11 +168,82 @@ export class DuckHuntGame {
         // Position after image loads to get correct height
         img.onload = () => {
             this._positionBackground(titleRect, img);
+            this._createSideGrass(titleRect, img);
         };
 
         // Also try immediate positioning in case image is cached
         if (img.complete) {
             this._positionBackground(titleRect, img);
+            this._createSideGrass(titleRect, img);
+        }
+    }
+
+    /**
+     * Create left and right grass elements
+     * @private
+     */
+    _createSideGrass(titleRect, mainImg) {
+        const imgHeight = mainImg.offsetHeight;
+        const titleHeight = titleRect.height;
+        const titleBottom = titleRect.bottom;
+        const top = titleBottom - imgHeight + (titleHeight / 3);
+
+        // Calculate available space on each side
+        const leftSpace = titleRect.left;
+        const rightSpace = window.innerWidth - titleRect.right;
+
+        // Common grass image styles with same animation
+        const grassImgStyle = `
+            height: ${imgHeight}px;
+            width: auto;
+            display: block;
+            transform: scaleY(0);
+            transform-origin: bottom;
+            animation: duckHuntBounceIn 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        `;
+
+        // Create LEFT grass - positioned to end at main background's left edge
+        if (leftSpace > 0) {
+            this.leftGrass = document.createElement('div');
+            this.leftGrass.className = 'duck-hunt-grass-left';
+            this.leftGrass.style.cssText = `
+                position: fixed;
+                top: ${top}px;
+                right: ${window.innerWidth - titleRect.left - 20}px;
+                height: ${imgHeight}px;
+                z-index: 100;
+                pointer-events: none;
+            `;
+
+            const leftImg = document.createElement('img');
+            leftImg.src = '/images/duck-hunt-grass.png';
+            leftImg.alt = '';
+            leftImg.style.cssText = grassImgStyle;
+
+            this.leftGrass.appendChild(leftImg);
+            document.body.appendChild(this.leftGrass);
+        }
+
+        // Create RIGHT grass - positioned to start at main background's right edge
+        if (rightSpace > 0) {
+            this.rightGrass = document.createElement('div');
+            this.rightGrass.className = 'duck-hunt-grass-right';
+            this.rightGrass.style.cssText = `
+                position: fixed;
+                top: ${top}px;
+                left: ${titleRect.right - 20}px;
+                height: ${imgHeight}px;
+                z-index: 100;
+                pointer-events: none;
+            `;
+
+            const rightImg = document.createElement('img');
+            rightImg.src = '/images/duck-hunt-grass.png';
+            rightImg.alt = '';
+            rightImg.style.cssText = grassImgStyle;
+
+            this.rightGrass.appendChild(rightImg);
+            document.body.appendChild(this.rightGrass);
         }
     }
 
@@ -201,6 +274,14 @@ export class DuckHuntGame {
         if (this.backgroundElement) {
             this.backgroundElement.remove();
             this.backgroundElement = null;
+        }
+        if (this.leftGrass) {
+            this.leftGrass.remove();
+            this.leftGrass = null;
+        }
+        if (this.rightGrass) {
+            this.rightGrass.remove();
+            this.rightGrass = null;
         }
     }
 }
