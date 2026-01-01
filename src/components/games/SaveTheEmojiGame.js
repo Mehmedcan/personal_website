@@ -7,7 +7,7 @@ import { LetterFall } from '../LetterFall.js';
  * leaving only the emoji "saved" in its original position.
  * 
  * Game Flow:
- * 1. Switch to dark theme
+ * 1. Switch to light theme
  * 2. Letters fall with Matter.js physics
  * 3. Letters fade out after a delay
  * 4. Player interaction (coming soon)
@@ -39,7 +39,7 @@ export class SaveTheEmojiGame {
         this.isActive = true;
 
         this._savePreviousTheme();
-        this._switchToDarkTheme();
+        this._switchToLightTheme();
         this._startLetterFall();
 
         console.log('Save the Emoji: Game started!');
@@ -81,16 +81,16 @@ export class SaveTheEmojiGame {
     /**
      * @private
      */
-    _switchToDarkTheme() {
-        document.documentElement.setAttribute('data-theme', 'dark');
+    _switchToLightTheme() {
+        document.documentElement.setAttribute('data-theme', 'light');
 
         // Update theme toggle button state
         const themeToggle = document.getElementById('theme-toggle');
         if (themeToggle) {
-            themeToggle.classList.add('theme-toggle--toggled');
+            themeToggle.classList.remove('theme-toggle--toggled');
         }
 
-        console.log('Save the Emoji: Switched to dark mode');
+        console.log('Save the Emoji: Switched to light mode');
     }
 
     /**
@@ -121,9 +121,7 @@ export class SaveTheEmojiGame {
         // Small delay to let the dark theme transition be visible first
         setTimeout(() => {
             this.letterFall = new LetterFall({
-                autoFadeOut: true,
-                fadeOutDelay: 3000,
-                fadeOutDuration: 500
+                autoFadeOut: false
             });
             this.letterFall.start();
             console.log('Save the Emoji: Letters falling with physics!');
