@@ -290,8 +290,11 @@ export class DuckHuntGame {
         `;
         duck.appendChild(img);
 
-        // Random spawn position along the title width
-        const spawnX = this.titleRect.left + Math.random() * this.titleRect.width;
+        // Random spawn position - center 1/4 of screen width
+        const screenWidth = window.innerWidth;
+        const spawnAreaWidth = screenWidth / 4;
+        const spawnAreaStart = (screenWidth - spawnAreaWidth) / 2;
+        const spawnX = spawnAreaStart + Math.random() * spawnAreaWidth;
         const spawnY = this.titleRect.bottom - 30; // Start from behind the text
 
         // Random initial direction
