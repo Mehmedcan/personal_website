@@ -15,13 +15,9 @@ export const gamesTemplate = `
         <span class="game-icon">👋</span>
         <span class="game-label">Save the Emoji</span>
       </button>
-      <button class="game-item-btn" data-game="snake">
-        <span class="game-icon">🐍</span>
-        <span class="game-label">Snake</span>
-      </button>
-      <button class="game-item-btn" data-game="breakout">
-        <span class="game-icon">🥎</span>
-        <span class="game-label">Breakout</span>
+      <button class="game-item-btn" data-game="duck-hunt">
+        <span class="game-icon">🦆</span>
+        <span class="game-label">Duck Hunt</span>
       </button>
     </div>
   </div>

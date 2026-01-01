@@ -1,5 +1,6 @@
 import { query, queryAll } from '../utils/index.js';
 import { SaveTheEmojiGame } from './games/SaveTheEmojiGame.js';
+import { DuckHuntGame } from './games/DuckHuntGame.js';
 
 /**
  * Games Menu Component
@@ -233,6 +234,10 @@ export class GamesMenu {
         switch (gameId) {
             case 'save-the-emoji':
                 this.currentGameInstance = new SaveTheEmojiGame();
+                break;
+
+            case 'duck-hunt':
+                this.currentGameInstance = new DuckHuntGame();
                 break;
 
             // Future games:

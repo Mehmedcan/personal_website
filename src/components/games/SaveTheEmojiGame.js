@@ -35,6 +35,12 @@ export class SaveTheEmojiGame {
         this.spiders = [];
         this.spiderInterval = null;
         this.animationFrameId = null;
+
+        // Slipper elements
+        this.slipper = null;
+        this.cursor = { x: 0, y: 0 };
+        this.boundMouseMove = this._handleMouseMove.bind(this);
+        this.boundMouseDown = this._handleMouseDown.bind(this);
     }
 
     // ==========================================
@@ -51,6 +57,8 @@ export class SaveTheEmojiGame {
 
         this._savePreviousTheme();
         this._switchToLightTheme();
+        this._initSlipper();
+        document.documentElement.setAttribute('data-game-active', 'save-the-emoji');
         this._startLetterFall();
         this._scheduleSpiderInvasion();
 
@@ -67,6 +75,8 @@ export class SaveTheEmojiGame {
 
         this._stopLetterFall();
         this._stopSpiderInvasion();
+        this._removeSlipper();
+        document.documentElement.removeAttribute('data-game-active');
         this._restorePreviousTheme();
 
         console.log('Save the Emoji: Game stopped!');
@@ -137,6 +147,7 @@ export class SaveTheEmojiGame {
                 autoFadeOut: false
             });
             this.letterFall.start();
+
             console.log('Save the Emoji: Letters falling with physics!');
         }, 300);
     }
@@ -285,11 +296,11 @@ export class SaveTheEmojiGame {
         const emojiRect = emoji.getBoundingClientRect();
         const emojiX = emojiRect.left + emojiRect.width / 2;
         const emojiY = emojiRect.top + emojiRect.height / 2;
-
         for (let i = this.spiders.length - 1; i >= 0; i--) {
             const spider = this.spiders[i];
+            if (spider.isDead) continue;
 
-            // Calculate direction to emoji
+            // Check for collision with emoji
             const dx = emojiX - spider.x;
             const dy = emojiY - spider.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
@@ -316,6 +327,98 @@ export class SaveTheEmojiGame {
             spider.element.style.transform = `rotate(${angle}rad)`;
         }
     }
+
+    // ==========================================
+    // SLIPPER MECHANIC
+    // ==========================================
+
+    /**
+     * @private
+     */
+    _initSlipper() {
+        this.slipper = document.createElement('div');
+        this.slipper.className = 'game-slipper';
+        document.body.appendChild(this.slipper);
+
+        window.addEventListener('mousemove', this.boundMouseMove);
+        window.addEventListener('mousedown', this.boundMouseDown);
+
+        // Match current cursor position immediately
+        this.slipper.style.left = `${this.cursor.x}px`;
+        this.slipper.style.top = `${this.cursor.y}px`;
+    }
+
+    /**
+     * @private
+     */
+    _removeSlipper() {
+        if (this.slipper) {
+            this.slipper.remove();
+            this.slipper = null;
+        }
+        window.removeEventListener('mousemove', this.boundMouseMove);
+        window.removeEventListener('mousedown', this.boundMouseDown);
+    }
+
+    /**
+     * @private
+     */
+    _handleMouseMove(e) {
+        this.cursor.x = e.clientX;
+        this.cursor.y = e.clientY;
+
+        if (this.slipper) {
+            this.slipper.style.left = `${e.clientX}px`;
+            this.slipper.style.top = `${e.clientY}px`;
+        }
+    }
+
+    /**
+     * @private
+     */
+    _handleMouseDown() {
+        if (!this.slipper) return;
+
+        // Trigger animation
+        this.slipper.classList.remove('slapping');
+        void this.slipper.offsetWidth; // Trigger reflow
+        this.slipper.classList.add('slapping');
+
+        // Check for spider kills
+        this._checkSpiderKill();
+    }
+
+    /**
+     * @private
+     */
+    _checkSpiderKill() {
+        const killRadius = 60;
+
+        for (let i = this.spiders.length - 1; i >= 0; i--) {
+            const spider = this.spiders[i];
+            if (spider.isDead) continue;
+
+            const dist = Math.sqrt(
+                Math.pow(this.cursor.x - spider.x, 2) +
+                Math.pow(this.cursor.y - spider.y, 2)
+            );
+
+            if (dist < killRadius) {
+                // Spider squashed by slipper!
+                spider.isDead = true;
+                spider.element.classList.add('dead');
+
+                setTimeout(() => {
+                    if (spider.element && spider.element.parentNode) {
+                        spider.element.remove();
+                    }
+                    const index = this.spiders.indexOf(spider);
+                    if (index > -1) this.spiders.splice(index, 1);
+                }, 500);
+            }
+        }
+    }
+
 
     // ==========================================
     // GAME LOGIC (TO BE IMPLEMENTED)

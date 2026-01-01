@@ -1142,3 +1142,80 @@ body.game-mode #gesture-active-info {
     transform: scale(1.2) rotate(8deg);
   }
 }
+
+.game-spider.dead::after {
+  content: '💥';
+  animation: none;
+  transform: scale(1.5);
+  filter: grayscale(0.5);
+}
+
+.game-spider.dead {
+  opacity: 0.8;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  transform: scale(0.8);
+}
+
+
+/* ============================================
+   SPOTLIGHT REVEAL EFFECT
+   ============================================ */
+
+/* ============================================
+   SAVE THE EMOJI GAME - SLIPPER
+   ============================================ */
+
+.game-slipper {
+  position: fixed;
+  font-size: 3rem;
+  z-index: 10010;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform, left, top;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  transition: transform 0.05s linear;
+}
+
+.game-slipper::after {
+  content: '🩴';
+}
+
+.game-slipper.slapping {
+  animation: slipper-slap 0.15s ease-out;
+}
+
+@keyframes slipper-slap {
+  0% {
+    transform: translate(-50%, -50%) rotate(-15deg) scale(1);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) rotate(-45deg) scale(0.8);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) rotate(-15deg) scale(1.1);
+  }
+}
+
+[data-game-active="save-the-emoji"] {
+  cursor: none !important;
+}
+
+[data-game-active="save-the-emoji"] a,
+[data-game-active="save-the-emoji"] button {
+  cursor: none !important;
+}
+
+
+/* Ensure emoji stays above the game elements */
+.emoji-line {
+  position: relative;
+  z-index: 10005 !important;
+}
+
+.game-spider {
+  z-index: 10000;
+}
