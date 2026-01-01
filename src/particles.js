@@ -14,10 +14,20 @@ export class ParticleSystem {
         this.targetMouseY = 0;
         this.currentMouseX = 0;
         this.currentMouseY = 0;
-        this.isGestureActive = false; // El hareketi kontrolü aktif mi?
+        this.isGestureActive = false;
         this.time = 0;
+        this.particleColors = ['#646cff', '#9089fc'];
+        this.updateParticleColors();
 
         this.init();
+    }
+
+    updateParticleColors() {
+        const style = getComputedStyle(document.documentElement);
+        const accent = style.getPropertyValue('--accent-color').trim();
+        if (accent) {
+            this.particleColors = [accent, '#9089fc'];
+        }
     }
 
     init() {
@@ -112,15 +122,14 @@ export class ParticleSystem {
     }
 
     updateButtonPositions() {
-        this.buttonsData = this.buttons.map(btn => {
+        this.buttonsData = this.buttons.map((btn, index) => {
             const rect = btn.getBoundingClientRect();
-            // Calculate circle radius: button width = radius (as per plan)
             const radius = rect.width;
             return {
                 x: rect.left + rect.width / 2,
                 y: rect.top + rect.height / 2,
                 radius: radius,
-                isHovered: false,
+                isHovered: (this.buttonsData && this.buttonsData[index]) ? this.buttonsData[index].isHovered : false,
                 element: btn
             };
         });
@@ -181,7 +190,7 @@ export class ParticleSystem {
                     originX: i * spacing,
                     originY: j * spacing,
                     size: 3,
-                    color: Math.random() > 0.5 ? '#646cff' : '#9089fc',
+                    colorIndex: Math.random() > 0.5 ? 0 : 1,
                     fx1: 0.01 + Math.random() * 0.04,
                     fx2: 0.01 + Math.random() * 0.04,
                     fy1: 0.01 + Math.random() * 0.04,
@@ -213,12 +222,13 @@ export class ParticleSystem {
             // Main.js zaten lerp yaptığı için burada doğrudan eşitliyoruz (çifte yumuşatmayı önlemek için)
             this.currentMouseX = this.targetMouseX;
             this.currentMouseY = this.targetMouseY;
-            // Pozisyonları her frame'de güncellemek gesture hassasiyetini artırır
-            this.updateButtonPositions();
         } else {
             this.currentMouseX += (this.targetMouseX - this.currentMouseX) * 0.1;
             this.currentMouseY += (this.targetMouseY - this.currentMouseY) * 0.1;
         }
+
+        // Update button positions ONCE per frame for synchronization
+        this.updateButtonPositions();
 
         const pushRadius = 600;
 
@@ -314,17 +324,13 @@ export class ParticleSystem {
                 let hoveredButtonData = null;
                 let buttonIndex = -1;
 
-                if (this.buttons) {
-                    for (let i = 0; i < this.buttons.length; i++) {
-                        const btn = this.buttons[i];
-                        // Check if button is hovered by checking if it has the hover state
-                        // We'll use the buttonsData for hover state, but calculate position in real-time
-                        if (this.buttonsData[i] && this.buttonsData[i].isHovered) {
-                            // Get real-time button position (accounts for transforms, scroll, etc.)
-                            const btnRect = btn.getBoundingClientRect();
-                            const btnCenterX = btnRect.left + btnRect.width / 2;
-                            const btnCenterY = btnRect.top + btnRect.height / 2;
-                            const btnRadius = btnRect.width * CIRCLE_RADIUS_MULTIPLIER;
+                if (this.buttonsData) {
+                    for (let i = 0; i < this.buttonsData.length; i++) {
+                        const btnData = this.buttonsData[i];
+                        if (btnData.isHovered) {
+                            const btnCenterX = btnData.x;
+                            const btnCenterY = btnData.y;
+                            const btnRadius = btnData.radius * CIRCLE_RADIUS_MULTIPLIER;
 
                             const btnDx = currentAnimX - btnCenterX;
                             const btnDy = currentAnimY - btnCenterY;
@@ -395,13 +401,12 @@ export class ParticleSystem {
 
                 // Get real-time button position for circle animation (if particle is in circle)
                 let realTimeButtonData = null;
-                if (p.circleState && this.buttons[p.circleState.buttonIndex]) {
-                    const btn = this.buttons[p.circleState.buttonIndex];
-                    const btnRect = btn.getBoundingClientRect();
+                if (p.circleState && this.buttonsData[p.circleState.buttonIndex]) {
+                    const btnData = this.buttonsData[p.circleState.buttonIndex];
                     realTimeButtonData = {
-                        x: btnRect.left + btnRect.width / 2,
-                        y: btnRect.top + btnRect.height / 2,
-                        radius: btnRect.width * CIRCLE_RADIUS_MULTIPLIER
+                        x: btnData.x,
+                        y: btnData.y,
+                        radius: btnData.radius * CIRCLE_RADIUS_MULTIPLIER
                     };
                 }
 
@@ -466,7 +471,7 @@ export class ParticleSystem {
                 this.ctx.lineTo(p.size * 2 * scale, 0);
 
                 this.ctx.globalAlpha = opacity;
-                this.ctx.strokeStyle = p.color;
+                this.ctx.strokeStyle = this.particleColors[p.colorIndex];
                 this.ctx.lineWidth = 3 * scale;
                 this.ctx.lineCap = 'round';
                 this.ctx.stroke();

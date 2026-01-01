@@ -151,7 +151,107 @@ document.querySelector('#app').innerHTML = `
   <footer class="footer-section">
     <p class="footer-text">© 2025, Mehmedcan, All Rights Reserved.</p>
   </footer>
+
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      width="1em"
+      height="1em"
+      fill="currentColor"
+      class="theme-toggle__around"
+      viewBox="0 0 32 32"
+    >
+      <clipPath id="theme-toggle__around__cutout">
+        <path d="M0 0h42v30a1 1 0 00-16 13H0Z" />
+      </clipPath>
+      <g clip-path="url(#theme-toggle__around__cutout)">
+        <circle cx="16" cy="16" r="8.4" />
+        <g>
+          <circle cx="16" cy="3.3" r="2.3" />
+          <circle cx="27" cy="9.7" r="2.3" />
+          <circle cx="27" cy="22.3" r="2.3" />
+          <circle cx="16" cy="28.7" r="2.3" />
+          <circle cx="5" cy="22.3" r="2.3" />
+          <circle cx="5" cy="9.7" r="2.3" />
+        </g>
+      </g>
+    </svg>
+  </button>
 `
+
+function initTheme() {
+  const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
+  const themeToggle = document.getElementById('theme-toggle');
+  if (themeToggle) {
+    if (theme === 'dark') {
+      themeToggle.classList.add('theme-toggle--toggled');
+    } else {
+      themeToggle.classList.remove('theme-toggle--toggled');
+    }
+  }
+  return theme;
+}
+
+let currentTheme = initTheme();
+
+const toggleTheme = async (event) => {
+  const themeToggle = document.getElementById('theme-toggle');
+  const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+  if (!document.startViewTransition) {
+    // Fallback if View (Transition) API is not supported
+    currentTheme = nextTheme;
+    localStorage.setItem('theme', currentTheme);
+    if (currentTheme === 'dark') {
+      themeToggle.classList.add('theme-toggle--toggled');
+    } else {
+      themeToggle.classList.remove('theme-toggle--toggled');
+    }
+    if (particles) particles.updateParticleColors();
+    return;
+  }
+
+  const transition = document.startViewTransition(() => {
+    currentTheme = nextTheme;
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    localStorage.setItem('theme', currentTheme);
+    if (currentTheme === 'dark') {
+      themeToggle.classList.add('theme-toggle--toggled');
+    } else {
+      themeToggle.classList.remove('theme-toggle--toggled');
+    }
+    if (particles) particles.updateParticleColors();
+  });
+
+  // Ripple effect
+  const btnRect = themeToggle.getBoundingClientRect();
+  const x = btnRect.left + btnRect.width / 2;
+  const y = btnRect.top + btnRect.height / 2;
+  const endRadius = Math.hypot(
+    Math.max(x, innerWidth - x),
+    Math.max(y, innerHeight - y)
+  );
+
+  await transition.ready;
+
+  document.documentElement.animate(
+    {
+      clipPath: [
+        `circle(0px at ${x}px ${y}px)`,
+        `circle(${endRadius}px at ${x}px ${y}px)`,
+      ],
+    },
+    {
+      duration: 500,
+      easing: 'ease-in-out',
+      pseudoElement: '::view-transition-new(root)',
+    }
+  );
+};
+
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 1024;
 
