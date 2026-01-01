@@ -5,3 +5,4 @@
 export { ThemeToggle } from './ThemeToggle.js';
 export { GestureController } from './GestureController.js';
 export { GamesMenu } from './GamesMenu.js';
+export { LetterFall } from './LetterFall.js';

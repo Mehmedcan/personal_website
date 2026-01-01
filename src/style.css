@@ -1099,3 +1099,15 @@ body.game-mode #gesture-info-container,
 body.game-mode #gesture-active-info {
   display: none !important;
 }
+
+
+/* ============================================
+   LETTER FALL EFFECT (Matter.js)
+   ============================================ */
+
+/* Falling letter styling */
+.falling-letter {
+  will-change: transform, left, top;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.3s ease;
+}

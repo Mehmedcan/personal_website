@@ -1,4 +1,5 @@
 import { query, queryAll } from '../utils/index.js';
+import { LetterFall } from './LetterFall.js';
 
 /**
  * Games Menu component
@@ -14,6 +15,7 @@ export class GamesMenu {
         this.isGameActive = false;
         this.currentGame = null;
         this.closeBtn = null;
+        this.letterFall = null;
 
         if (!this.container || !this.toggleBtn) return;
 
@@ -110,6 +112,14 @@ export class GamesMenu {
             themeToggle.classList.add('theme-toggle--toggled');
         }
 
+        // Start Matter.js letter fall effect after a short delay
+        // This allows the dark theme transition to be visible first
+        setTimeout(() => {
+            this.letterFall = new LetterFall();
+            this.letterFall.start();
+            console.log('Save the Emoji: Letters falling with Matter.js physics!');
+        }, 300);
+
         console.log('Save the Emoji: Switched to dark mode');
     }
 
@@ -148,13 +158,22 @@ export class GamesMenu {
         }
 
         // Game-specific: Restore previous theme for Save the Emoji
-        if (wasPlayingSaveTheEmoji && this.previousTheme) {
-            document.documentElement.setAttribute('data-theme', this.previousTheme);
-            if (themeToggle) {
-                themeToggle.classList.toggle('theme-toggle--toggled', this.previousTheme === 'dark');
+        if (wasPlayingSaveTheEmoji) {
+            // Stop the letter fall effect first
+            if (this.letterFall) {
+                this.letterFall.stop();
+                this.letterFall = null;
             }
-            this.previousTheme = null;
-            console.log('Save the Emoji: Restored previous theme');
+
+            // Restore previous theme
+            if (this.previousTheme) {
+                document.documentElement.setAttribute('data-theme', this.previousTheme);
+                if (themeToggle) {
+                    themeToggle.classList.toggle('theme-toggle--toggled', this.previousTheme === 'dark');
+                }
+                this.previousTheme = null;
+                console.log('Save the Emoji: Restored previous theme');
+            }
         }
 
         // Show games menu
