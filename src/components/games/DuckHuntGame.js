@@ -7,6 +7,7 @@ export class DuckHuntGame {
     constructor() {
         this.isActive = false;
         this.backgroundElement = null;
+        this.container = null;
     }
 
     /**
@@ -17,7 +18,10 @@ export class DuckHuntGame {
         if (this.isActive) return this;
         this.isActive = true;
 
-        this._createBackground();
+        // First zoom and position the container, then show background
+        this._setupGamePosition().then(() => {
+            this._createBackground();
+        });
 
         console.log('Duck Hunt: Game started!');
         return this;
@@ -31,6 +35,7 @@ export class DuckHuntGame {
         this.isActive = false;
 
         this._removeBackground();
+        this._resetGamePosition();
 
         console.log('Duck Hunt: Game stopped!');
     }
@@ -41,6 +46,78 @@ export class DuckHuntGame {
      */
     get active() {
         return this.isActive;
+    }
+
+    // ==========================================
+    // GAME POSITION SETUP
+    // ==========================================
+
+    /**
+     * Zoom in and move the container down for game positioning
+     * @private
+     * @returns {Promise}
+     */
+    _setupGamePosition() {
+        return new Promise((resolve) => {
+            this.container = document.querySelector('.container');
+            if (!this.container) {
+                resolve();
+                return;
+            }
+
+            // Add animation styles if not already added
+            if (!document.getElementById('duck-hunt-animation-styles')) {
+                const style = document.createElement('style');
+                style.id = 'duck-hunt-animation-styles';
+                style.textContent = `
+                    @keyframes duckHuntBounceIn {
+                        0% {
+                            transform: scaleY(0);
+                        }
+                        100% {
+                            transform: scaleY(1);
+                        }
+                    }
+                    
+                    @keyframes duckHuntZoomIn {
+                        0% {
+                            transform: scale(1) translateY(0);
+                        }
+                        100% {
+                            transform: scale(1.5) translateY(28vh);
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Apply zoom animation to container
+            this.container.style.transition = 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            this.container.style.transformOrigin = 'center center';
+            this.container.style.transform = 'scale(1.65) translateY(calc(28vh - 50px))';
+
+            // Wait for animation to complete
+            setTimeout(resolve, 850);
+        });
+    }
+
+    /**
+     * Reset container position when game stops
+     * @private
+     */
+    _resetGamePosition() {
+        if (this.container) {
+            this.container.style.transition = 'transform 0.5s ease-out';
+            this.container.style.transform = '';
+
+            // Clean up after transition
+            setTimeout(() => {
+                if (this.container) {
+                    this.container.style.transition = '';
+                    this.container.style.transformOrigin = '';
+                }
+            }, 500);
+        }
     }
 
     // ==========================================
@@ -55,7 +132,7 @@ export class DuckHuntGame {
         const title = document.querySelector('.title');
         if (!title) return;
 
-        // Get title's bounding box
+        // Get title's bounding box AFTER zoom animation
         const titleRect = title.getBoundingClientRect();
 
         // Create background element
@@ -82,23 +159,6 @@ export class DuckHuntGame {
             transform-origin: bottom;
             animation: duckHuntBounceIn 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         `;
-
-        // Add keyframes animation if not already added
-        if (!document.getElementById('duck-hunt-animation-styles')) {
-            const style = document.createElement('style');
-            style.id = 'duck-hunt-animation-styles';
-            style.textContent = `
-                @keyframes duckHuntBounceIn {
-                    0% {
-                        transform: scaleY(0);
-                    }
-                    100% {
-                        transform: scaleY(1);
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-        }
 
         this.backgroundElement.appendChild(img);
         document.body.appendChild(this.backgroundElement);
