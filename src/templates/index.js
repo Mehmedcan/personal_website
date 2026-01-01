@@ -9,3 +9,4 @@ export { interestsTemplate } from './interestsTemplate.js';
 export { footerTemplate } from './footerTemplate.js';
 export { themeToggleTemplate } from './themeToggleTemplate.js';
 export { gestureUITemplate } from './gestureUITemplate.js';
+export { gamesTemplate } from './gamesTemplate.js';
