@@ -92,7 +92,6 @@ export class GamesMenu {
         this.container.classList.remove('open');
         this.toggleBtn.classList.remove('active');
     }
-
     // ==========================================
     // GAME LIFECYCLE
     // ==========================================
@@ -106,14 +105,13 @@ export class GamesMenu {
         this.isGameActive = true;
 
         this._closeMenu();
-        this._scrollToTop();
 
-        // Wait for scroll to complete
-        setTimeout(() => {
+        // Wait for scroll to complete before starting game
+        this._scrollToTopAndWait().then(() => {
             this._enterGameMode();
             this._startGame(gameId);
             console.log(`Game started: ${gameId}`);
-        }, 500);
+        });
     }
 
     /**
@@ -137,7 +135,40 @@ export class GamesMenu {
     // ==========================================
 
     /**
+     * Scroll to top and return a promise that resolves when scroll is complete
      * @private
+     * @returns {Promise}
+     */
+    _scrollToTopAndWait() {
+        return new Promise((resolve) => {
+            // If already at top, resolve immediately
+            if (window.scrollY === 0) {
+                resolve();
+                return;
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Check scroll position periodically
+            const checkScroll = () => {
+                if (window.scrollY === 0) {
+                    resolve();
+                } else {
+                    requestAnimationFrame(checkScroll);
+                }
+            };
+
+            // Start checking after a small delay to let scroll begin
+            setTimeout(checkScroll, 50);
+
+            // Fallback timeout in case scroll detection fails
+            setTimeout(resolve, 2000);
+        });
+    }
+
+    /**
+     * @private
+     * @deprecated Use _scrollToTopAndWait instead
      */
     _scrollToTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
