@@ -174,6 +174,12 @@ export class GestureController {
         this.infoContainer?.classList.add('hidden');
         this.activeInfo?.classList.remove('hidden');
 
+        // Hide theme toggle during gesture mode to prevent conflicts
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.style.display = 'none';
+        }
+
         this.particles.setIsGestureActive(true);
         this.animationRunning = true;
         this.animate();
@@ -187,6 +193,12 @@ export class GestureController {
         this.cursor.style.display = 'none';
         this.infoContainer?.classList.remove('hidden');
         this.activeInfo?.classList.add('hidden');
+
+        // Show theme toggle again
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.style.display = 'flex';
+        }
 
         this.particles.setIsGestureActive(false);
         this.animationRunning = false;
