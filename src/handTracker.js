@@ -1,72 +1,92 @@
 import { Hands } from '@mediapipe/hands';
 import { Camera } from '@mediapipe/camera_utils';
 
+// Finger landmark indices
+const FINGER_INDICES = {
+  THUMB_TIP: 4,
+  INDEX_TIP: 8,
+  MIDDLE_TIP: 12
+};
+
+const PINCH_THRESHOLD = 0.045;
+const CAMERA_DIMENSIONS = { width: 640, height: 480 };
+
+/**
+ * HandTracker
+ * Handles webcam-based hand tracking using MediaPipe
+ */
 export class HandTracker {
   constructor(onHandMove) {
     this.onHandMove = onHandMove;
     this.isRunning = false;
 
-    this.videoElement = document.createElement('video');
-    this.videoElement.style.display = 'none';
-    this.videoElement.id = 'input-video';
-    document.body.appendChild(this.videoElement);
+    this.videoElement = this.createVideoElement();
+    this.hands = this.initializeHands();
+    this.camera = this.initializeCamera();
+  }
 
-    this.hands = new Hands({
-      locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-      },
+  createVideoElement() {
+    const video = document.createElement('video');
+    video.style.display = 'none';
+    video.id = 'input-video';
+    document.body.appendChild(video);
+    return video;
+  }
+
+  initializeHands() {
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
     });
 
-    this.hands.setOptions({
+    hands.setOptions({
       maxNumHands: 1,
       modelComplexity: 1,
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5,
     });
 
-    this.hands.onResults((results) => {
-      if (!this.isRunning) return;
+    hands.onResults((results) => this.handleResults(results));
 
-      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        const landmarks = results.multiHandLandmarks[0];
+    return hands;
+  }
 
-        // Parmak indeksleri: 4: Baş parmak, 8: İşaret parmağı, 12: Orta parmak
-        const TRACKED_FINGER_INDEX = 12; // Artık orta parmağı takip ediyor
-
-        const trackedTip = landmarks[TRACKED_FINGER_INDEX];
-        const indexTip = landmarks[8];
-        const thumbTip = landmarks[4];
-
-        // Pinch algılama: baş parmak ve işaret parmağı arasındaki mesafe (değişmedi)
-        const distance = Math.sqrt(
-          Math.pow(thumbTip.x - indexTip.x, 2) +
-          Math.pow(thumbTip.y - indexTip.y, 2)
-        );
-
-        // Pinch eşik değeri
-        const PINCH_THRESHOLD = 0.04;
-        const isPinching = distance < PINCH_THRESHOLD;
-
-        const handPosition = {
-          x: trackedTip.x, // Takip edilen parmak pozisyonu
-          y: trackedTip.y,
-          z: trackedTip.z,
-          isPinching: isPinching,
-          pinchDistance: distance
-        };
-
-        this.onHandMove(handPosition);
-      }
-    });
-
-    this.camera = new Camera(this.videoElement, {
+  initializeCamera() {
+    return new Camera(this.videoElement, {
       onFrame: async () => {
         if (this.isRunning) {
           await this.hands.send({ image: this.videoElement });
         }
       },
-      width: 640,
-      height: 480,
+      ...CAMERA_DIMENSIONS,
+    });
+  }
+
+  /**
+   * Processes hand detection results and calculates pinch state
+   */
+  handleResults(results) {
+    if (!this.isRunning) return;
+    if (!results.multiHandLandmarks?.length) return;
+
+    const landmarks = results.multiHandLandmarks[0];
+
+    // Track middle finger for cursor position
+    const trackedTip = landmarks[FINGER_INDICES.MIDDLE_TIP];
+    const indexTip = landmarks[FINGER_INDICES.INDEX_TIP];
+    const thumbTip = landmarks[FINGER_INDICES.THUMB_TIP];
+
+    // Pinch detection: distance between thumb and index finger
+    const distance = Math.hypot(
+      thumbTip.x - indexTip.x,
+      thumbTip.y - indexTip.y
+    );
+
+    this.onHandMove({
+      x: trackedTip.x,
+      y: trackedTip.y,
+      z: trackedTip.z,
+      isPinching: distance < PINCH_THRESHOLD,
+      pinchDistance: distance
     });
   }
 
@@ -74,15 +94,15 @@ export class HandTracker {
     try {
       await this.camera.start();
       this.isRunning = true;
-      console.log('Camera started');
+      console.log('Hand tracking started');
     } catch (err) {
-      console.error('Error starting camera:', err);
-      alert('Kamera erişimi reddedildi. Gesture kontrolü için kamera izni gereklidir.');
+      console.error('Camera access error:', err);
+      alert('Camera access denied. Camera permission is required for gesture control.');
     }
   }
 
   stop() {
     this.isRunning = false;
-    console.log('Gesture tracking stopped');
+    console.log('Hand tracking stopped');
   }
 }

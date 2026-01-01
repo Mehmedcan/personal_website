@@ -1,65 +1,113 @@
-// Circle radius multiplier - adjust this to change circle size
-const CIRCLE_RADIUS_MULTIPLIER = 0.8; // 0.8 = 80% of button width
-// Enable smooth lerp transition for circle animation
-const ENABLE_CIRCLE_LERP = true; // true = smooth transition, false = instant transition
-// Lerp speed for smooth transition into/out of circle animation (0-1, higher = faster)
-const CIRCLE_LERP_SPEED = 0.15; // 0.08 = smooth transition over ~12-13 frames
+import { isMobileDevice } from './utils/device.js';
+import { query, queryAll } from './utils/dom.js';
+import {
+    PARTICLE_SPACING,
+    PARTICLE_SIZE,
+    PARTICLE_PUSH_RADIUS,
+    PARTICLE_DEFAULT_VISIBILITY_RADIUS,
+    PARTICLE_HOVER_VISIBILITY_RADIUS,
+    PARTICLE_BUTTON_VISIBILITY_RADIUS,
+    CIRCLE_RADIUS_MULTIPLIER,
+    CIRCLE_LERP_ENABLED,
+    CIRCLE_LERP_SPEED,
+    CIRCLE_ROTATION_SPEED,
+    DEFAULT_PARTICLE_COLORS
+} from './config/constants.js';
 
+/**
+ * ParticleSystem
+ * Creates and animates interactive particles that respond to mouse/gesture input
+ */
 export class ParticleSystem {
     constructor() {
+        this.isMobile = isMobileDevice();
+
+        // Early exit for mobile - no particles
+        if (this.isMobile) {
+            this.enableMobileFallback();
+            return;
+        }
+
+        this.initializeState();
+        this.createCanvas();
+        this.init();
+    }
+
+    initializeState() {
+        // Canvas and rendering
         this.canvas = document.createElement('canvas');
         this.ctx = this.canvas.getContext('2d');
         this.particles = [];
+        this.time = 0;
+
+        // Mouse/cursor tracking
         this.targetMouseX = 0;
         this.targetMouseY = 0;
         this.currentMouseX = 0;
         this.currentMouseY = 0;
         this.isGestureActive = false;
-        this.time = 0;
-        this.particleColors = ['#646cff', '#9089fc'];
-        this.updateParticleColors();
 
-        this.init();
+        // Button interaction
+        this.buttons = [];
+        this.buttonsData = [];
+        this.isHovering = false;
+
+        // Visibility control
+        this.forceMultiplier = 1;
+        this.currentVisibilityRadius = PARTICLE_DEFAULT_VISIBILITY_RADIUS;
+        this.scrollVisibilityMultiplier = 1.0;
+        this.targetScrollVisibility = 1.0;
+
+        // Colors
+        this.particleColors = [...DEFAULT_PARTICLE_COLORS];
+        this.updateParticleColors();
+    }
+
+    enableMobileFallback() {
+        const buttons = queryAll('.social-links a');
+        buttons.forEach(btn => {
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+        });
+    }
+
+    createCanvas() {
+        Object.assign(this.canvas.style, {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            zIndex: '0',
+            pointerEvents: 'none'
+        });
+        document.body.appendChild(this.canvas);
     }
 
     updateParticleColors() {
-        const style = getComputedStyle(document.documentElement);
-        const accent = style.getPropertyValue('--accent-color').trim();
+        const accent = getComputedStyle(document.documentElement)
+            .getPropertyValue('--accent-color').trim();
+
         if (accent) {
             this.particleColors = [accent, '#9089fc'];
         }
     }
 
     init() {
-        // Detect mobile devices
-        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 1024;
+        // DOM references
+        this.containerElement = query('.container');
+        this.resumeSectionElement = query('.resume-section');
+        this.buttons = Array.from(queryAll('.social-links a'));
 
-        // If mobile, don't initialize particles
-        if (this.isMobile) {
-            // Make all social buttons always visible on mobile
-            const buttons = document.querySelectorAll('.social-links a');
-            buttons.forEach(btn => {
-                btn.style.opacity = '1';
-                btn.style.pointerEvents = 'auto';
-            });
-            return; // Exit early, no particles on mobile
-        }
+        this.setupButtonHoverListeners();
+        this.setupEventListeners();
+        this.resize();
+        this.updateScrollVisibility();
+        this.createParticles();
+        this.animate();
+    }
 
-        this.canvas.style.position = 'fixed';
-        this.canvas.style.top = '0';
-        this.canvas.style.left = '0';
-        this.canvas.style.width = '100%';
-        this.canvas.style.height = '100%';
-        this.canvas.style.zIndex = '0';
-        this.canvas.style.pointerEvents = 'none';
-        document.body.appendChild(this.canvas);
-
-        // Select buttons for the flashlight masking effect
-        this.buttons = Array.from(document.querySelectorAll('.social-links a'));
-        this.buttonsData = [];
-
-        // Add hover listeners for 'gathering' effect - track each button individually
-        this.isHovering = false;
+    setupButtonHoverListeners() {
         this.buttons.forEach((btn, index) => {
             btn.addEventListener('mouseenter', () => {
                 this.isHovering = true;
@@ -67,51 +115,43 @@ export class ParticleSystem {
                     this.buttonsData[index].isHovered = true;
                 }
             });
+
             btn.addEventListener('mouseleave', () => {
                 this.isHovering = false;
                 if (this.buttonsData[index]) {
                     this.buttonsData[index].isHovered = false;
-                    // Reset circleState for particles in this button's circle
-                    this.particles.forEach(p => {
-                        if (p.circleState && p.circleState.buttonIndex === index) {
-                            p.circleState = null;
-                        }
-                    });
+                    this.resetButtonCircleState(index);
                 }
             });
         });
+    }
 
-        this.forceMultiplier = 1; // 1 = repulsion, negative = attraction
-        this.currentVisibilityRadius = 750; // Dynamic visibility radius
+    resetButtonCircleState(buttonIndex) {
+        this.particles.forEach(p => {
+            if (p.circleState?.buttonIndex === buttonIndex) {
+                p.circleState = null;
+            }
+        });
+    }
 
-        // Scroll-based visibility control
-        this.containerElement = document.querySelector('.container');
-        this.resumeSectionElement = document.querySelector('.resume-section');
-        this.scrollVisibilityMultiplier = 1.0; // 0-1, controls particle visibility based on scroll
-        this.targetScrollVisibility = 1.0;
-
-        this.resize();
-        this.updateButtonPositions();
+    setupEventListeners() {
         window.addEventListener('resize', () => {
             this.resize();
             this.updateButtonPositions();
         });
+
         window.addEventListener('mousemove', (e) => {
             this.targetMouseX = e.clientX;
             this.targetMouseY = e.clientY;
         });
+
         window.addEventListener('scroll', () => {
             this.updateScrollVisibility();
-            this.updateButtonPositions(); // Scroll olduğunda buton pozisyonlarını güncelle
+            this.updateButtonPositions();
         });
-
-        // Initial visibility check
-        this.updateScrollVisibility();
-
-        this.createParticles();
-        this.animate();
     }
 
+    // Public API
     setTarget(x, y) {
         this.targetMouseX = x;
         this.targetMouseY = y;
@@ -124,12 +164,11 @@ export class ParticleSystem {
     updateButtonPositions() {
         this.buttonsData = this.buttons.map((btn, index) => {
             const rect = btn.getBoundingClientRect();
-            const radius = rect.width;
             return {
                 x: rect.left + rect.width / 2,
                 y: rect.top + rect.height / 2,
-                radius: radius,
-                isHovered: (this.buttonsData && this.buttonsData[index]) ? this.buttonsData[index].isHovered : false,
+                radius: rect.width,
+                isHovered: this.buttonsData[index]?.isHovered ?? false,
                 element: btn
             };
         });
@@ -141,32 +180,21 @@ export class ParticleSystem {
             return;
         }
 
-        const containerRect = this.containerElement.getBoundingClientRect();
         const resumeRect = this.resumeSectionElement.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
 
-        // Check if container is still visible in viewport
-        const containerBottom = containerRect.bottom;
-        const resumeTop = resumeRect.top;
+        // Fade thresholds
+        const fadeStartPoint = viewportHeight * 0.7;
+        const fadeEndPoint = viewportHeight * 0.5;
 
-        // Start fading when resume section starts entering viewport
-        // Fade out completely when resume section reaches middle of viewport
-        const fadeStartPoint = viewportHeight * 0.7; // Start fading when resume is 70% from top
-        const fadeEndPoint = viewportHeight * 0.5; // Fully faded when resume reaches middle of viewport (50%)
-
-        if (resumeTop < fadeStartPoint) {
-            // Resume section is entering viewport, fade out particles
-            if (resumeTop <= fadeEndPoint) {
-                // Fully faded out
+        if (resumeRect.top < fadeStartPoint) {
+            if (resumeRect.top <= fadeEndPoint) {
                 this.targetScrollVisibility = 0;
             } else {
-                // Calculate fade progress (0 = fully visible, 1 = fully hidden)
-                const fadeRange = fadeStartPoint - fadeEndPoint;
-                const fadeProgress = (fadeStartPoint - resumeTop) / fadeRange;
+                const fadeProgress = (fadeStartPoint - resumeRect.top) / (fadeStartPoint - fadeEndPoint);
                 this.targetScrollVisibility = Math.max(0, 1 - fadeProgress);
             }
         } else {
-            // Container area is visible, particles should be fully visible
             this.targetScrollVisibility = 1.0;
         }
     }
@@ -180,305 +208,305 @@ export class ParticleSystem {
 
     createParticles() {
         this.particles = [];
-        const spacing = 60;
-        const rows = Math.ceil(this.canvas.height / spacing);
-        const cols = Math.ceil(this.canvas.width / spacing);
+
+        const rows = Math.ceil(this.canvas.height / PARTICLE_SPACING);
+        const cols = Math.ceil(this.canvas.width / PARTICLE_SPACING);
 
         for (let i = 0; i < cols; i++) {
             for (let j = 0; j < rows; j++) {
-                this.particles.push({
-                    originX: i * spacing,
-                    originY: j * spacing,
-                    size: 3,
-                    colorIndex: Math.random() > 0.5 ? 0 : 1,
-                    fx1: 0.01 + Math.random() * 0.04,
-                    fx2: 0.01 + Math.random() * 0.04,
-                    fy1: 0.01 + Math.random() * 0.04,
-                    fy2: 0.01 + Math.random() * 0.04,
-                    phaseX1: Math.random() * Math.PI * 2,
-                    phaseX2: Math.random() * Math.PI * 2,
-                    phaseY1: Math.random() * Math.PI * 2,
-                    phaseY2: Math.random() * Math.PI * 2,
-                    amp: 10 + Math.random() * 10,
-                    circleState: null, // null = outside circle, {buttonIndex, angle, targetRadius} = inside circle
-                    // Circle offset for polish: small variations in radius and angle
-                    circleRadiusOffset: (Math.random() - 0.5) * 8, // -4 to +4 pixels offset from circle edge
-                    circleAngleOffset: (Math.random() - 0.5) * 0.15, // -0.075 to +0.075 radians offset
-                    circleScale: 0.3 + Math.random() * 0.5, // Random scale between 0.3 and 0.8 for circle animation
-                    circleLerpProgress: 0 // 0-1, lerp progress for smooth transition into/out of circle animation
-                });
+                this.particles.push(this.createParticle(i, j));
             }
         }
+    }
+
+    createParticle(col, row) {
+        return {
+            originX: col * PARTICLE_SPACING,
+            originY: row * PARTICLE_SPACING,
+            size: PARTICLE_SIZE,
+            colorIndex: Math.random() > 0.5 ? 0 : 1,
+
+            // Wave animation frequencies and phases
+            fx1: 0.01 + Math.random() * 0.04,
+            fx2: 0.01 + Math.random() * 0.04,
+            fy1: 0.01 + Math.random() * 0.04,
+            fy2: 0.01 + Math.random() * 0.04,
+            phaseX1: Math.random() * Math.PI * 2,
+            phaseX2: Math.random() * Math.PI * 2,
+            phaseY1: Math.random() * Math.PI * 2,
+            phaseY2: Math.random() * Math.PI * 2,
+            amp: 10 + Math.random() * 10,
+
+            // Circle animation state
+            circleState: null,
+            circleRadiusOffset: (Math.random() - 0.5) * 8,
+            circleAngleOffset: (Math.random() - 0.5) * 0.15,
+            circleScale: 0.3 + Math.random() * 0.5,
+            circleLerpProgress: 0
+        };
     }
 
     animate() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.time += 1;
 
-        // Update scroll visibility multiplier with smooth lerp
+        this.updateVisibilityState();
+        this.updateMousePosition();
+        this.updateButtonPositions();
+        this.updateButtonVisibility();
+        this.renderParticles();
+
+        requestAnimationFrame(() => this.animate());
+    }
+
+    updateVisibilityState() {
+        // Smooth lerp for scroll visibility
         this.scrollVisibilityMultiplier += (this.targetScrollVisibility - this.scrollVisibilityMultiplier) * 0.1;
 
+        // Dynamic visibility radius based on hover
+        const targetRadius = this.isHovering
+            ? PARTICLE_HOVER_VISIBILITY_RADIUS
+            : PARTICLE_DEFAULT_VISIBILITY_RADIUS;
+        this.currentVisibilityRadius += (targetRadius - this.currentVisibilityRadius) * 0.1;
+
+        // Force direction: positive = repulsion, negative = attraction
+        const targetMultiplier = this.isHovering ? -2.5 : 1.0;
+        this.forceMultiplier += (targetMultiplier - this.forceMultiplier) * 0.1;
+    }
+
+    updateMousePosition() {
         if (this.isGestureActive) {
-            // Main.js zaten lerp yaptığı için burada doğrudan eşitliyoruz (çifte yumuşatmayı önlemek için)
+            // Direct assignment when using gesture (lerp handled externally)
             this.currentMouseX = this.targetMouseX;
             this.currentMouseY = this.targetMouseY;
         } else {
             this.currentMouseX += (this.targetMouseX - this.currentMouseX) * 0.1;
             this.currentMouseY += (this.targetMouseY - this.currentMouseY) * 0.1;
         }
+    }
 
-        // Update button positions ONCE per frame for synchronization
-        this.updateButtonPositions();
+    updateButtonVisibility() {
+        if (!this.buttonsData) return;
 
-        const pushRadius = 600;
-
-        const targetVisibilityRadius = this.isHovering ? 450 : 750;
-        this.currentVisibilityRadius += (targetVisibilityRadius - this.currentVisibilityRadius) * 0.1;
-
-        const targetMultiplier = this.isHovering ? -2.5 : 1.0;
-        this.forceMultiplier += (targetMultiplier - this.forceMultiplier) * 0.1;
-
-        const buttonVisibilityRadius = 550;
-
-        if (this.buttonsData) {
-            // Eğer gesture aktifse, butonların hover durumunu koordinatlara göre biz belirleyelim
-            if (this.isGestureActive) {
-                let anyHovered = false;
-                this.buttonsData.forEach((btnData, index) => {
-                    const rect = btnData.element.getBoundingClientRect();
-                    const isInside = (
-                        this.currentMouseX >= rect.left &&
-                        this.currentMouseX <= rect.right &&
-                        this.currentMouseY >= rect.top &&
-                        this.currentMouseY <= rect.bottom
-                    );
-
-                    if (isInside) {
-                        if (!btnData.isHovered) {
-                            btnData.isHovered = true;
-                            btnData.element.classList.add('gesture-hover');
-                        }
-                        anyHovered = true;
-                    } else {
-                        if (btnData.isHovered) {
-                            btnData.isHovered = false;
-                            btnData.element.classList.remove('gesture-hover');
-                            // Reset circleState for particles
-                            this.particles.forEach(p => {
-                                if (p.circleState && p.circleState.buttonIndex === index) {
-                                    p.circleState = null;
-                                }
-                            });
-                        }
-                    }
-                });
-                this.isHovering = anyHovered;
-            }
-
-            this.buttonsData.forEach(btnData => {
-                const dx = this.currentMouseX - btnData.x;
-                const dy = this.currentMouseY - btnData.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-
-                let opacity = 0;
-                if (dist < buttonVisibilityRadius) {
-                    opacity = Math.max(0, 1 - Math.pow(dist / buttonVisibilityRadius, 2));
-                    opacity = Math.pow(opacity, 0.5);
-                }
-
-                btnData.element.style.opacity = opacity;
-                btnData.element.style.pointerEvents = opacity < 0.1 ? 'none' : 'auto';
-            });
+        // Gesture mode: determine hover state from cursor position
+        if (this.isGestureActive) {
+            this.updateGestureHoverState();
         }
 
-        // Rotation speed: approximately 0.5-1 second per full rotation (0.015 rad/frame at 60fps)
-        const rotationSpeed = 0.015;
+        // Update button opacity based on distance
+        this.buttonsData.forEach(btnData => {
+            const dist = Math.hypot(
+                this.currentMouseX - btnData.x,
+                this.currentMouseY - btnData.y
+            );
 
-        this.particles.forEach(p => {
-            const dx = this.currentMouseX - p.originX;
-            const dy = this.currentMouseY - p.originY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+            let opacity = 0;
+            if (dist < PARTICLE_BUTTON_VISIBILITY_RADIUS) {
+                opacity = Math.max(0, 1 - Math.pow(dist / PARTICLE_BUTTON_VISIBILITY_RADIUS, 2));
+                opacity = Math.pow(opacity, 0.5);
+            }
 
-            if (distance < this.currentVisibilityRadius) {
-                // Calculate current animation position (for circle detection)
-                const waveX = (Math.sin(this.time * p.fx1 + p.phaseX1) + Math.cos(this.time * p.fx2 + p.phaseX2)) * p.amp;
-                const waveY = (Math.sin(this.time * p.fy1 + p.phaseY1) + Math.cos(this.time * p.fy2 + p.phaseY2)) * p.amp;
+            btnData.element.style.opacity = opacity;
+            btnData.element.style.pointerEvents = opacity < 0.1 ? 'none' : 'auto';
+        });
+    }
 
-                let pushX = 0;
-                let pushY = 0;
+    updateGestureHoverState() {
+        let anyHovered = false;
 
-                if (distance < pushRadius) {
-                    const angleToParticle = Math.atan2(-dy, -dx);
-                    const force = (1 - distance / pushRadius) * 120 * this.forceMultiplier;
+        this.buttonsData.forEach((btnData, index) => {
+            const rect = btnData.element.getBoundingClientRect();
+            const isInside = (
+                this.currentMouseX >= rect.left &&
+                this.currentMouseX <= rect.right &&
+                this.currentMouseY >= rect.top &&
+                this.currentMouseY <= rect.bottom
+            );
 
-                    pushX = Math.cos(angleToParticle) * force;
-                    pushY = Math.sin(angleToParticle) * force;
+            if (isInside) {
+                if (!btnData.isHovered) {
+                    btnData.isHovered = true;
+                    btnData.element.classList.add('gesture-hover');
                 }
-
-                const currentAnimX = p.originX + waveX + pushX;
-                const currentAnimY = p.originY + waveY + pushY;
-
-                // Check if particle is inside any hovered button's circle (using current animation position)
-                // Calculate button position in real-time for accurate circle detection
-                let insideCircle = false;
-                let hoveredButtonData = null;
-                let buttonIndex = -1;
-
-                if (this.buttonsData) {
-                    for (let i = 0; i < this.buttonsData.length; i++) {
-                        const btnData = this.buttonsData[i];
-                        if (btnData.isHovered) {
-                            const btnCenterX = btnData.x;
-                            const btnCenterY = btnData.y;
-                            const btnRadius = btnData.radius * CIRCLE_RADIUS_MULTIPLIER;
-
-                            const btnDx = currentAnimX - btnCenterX;
-                            const btnDy = currentAnimY - btnCenterY;
-                            const btnDistance = Math.sqrt(btnDx * btnDx + btnDy * btnDy);
-
-                            if (btnDistance <= btnRadius) {
-                                insideCircle = true;
-                                hoveredButtonData = {
-                                    x: btnCenterX,
-                                    y: btnCenterY,
-                                    radius: btnRadius
-                                };
-                                buttonIndex = i;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                // Update circleState and lerp progress
-                if (insideCircle && hoveredButtonData) {
-                    // Particle enters or is inside circle
-                    if (!p.circleState || p.circleState.buttonIndex !== buttonIndex) {
-                        // Calculate initial angle based on particle's current animation position relative to button center
-                        const btnDx = currentAnimX - hoveredButtonData.x;
-                        const btnDy = currentAnimY - hoveredButtonData.y;
-                        const initialAngle = Math.atan2(btnDy, btnDx);
-
-                        p.circleState = {
-                            buttonIndex: buttonIndex,
-                            angle: initialAngle,
-                            targetRadius: hoveredButtonData.radius
-                        };
-                        // Reset lerp progress when entering new circle
-                        p.circleLerpProgress = 0;
-                    } else {
-                        // Update angle for rotation (clockwise = increasing angle)
-                        p.circleState.angle += rotationSpeed;
-                        if (p.circleState.angle > Math.PI * 2) {
-                            p.circleState.angle -= Math.PI * 2;
-                        }
-                    }
-                    // Lerp progress towards 1 (fully in circle animation)
-                    if (ENABLE_CIRCLE_LERP) {
-                        p.circleLerpProgress = Math.min(1, p.circleLerpProgress + CIRCLE_LERP_SPEED);
-                    } else {
-                        p.circleLerpProgress = 1; // Instant transition
-                    }
-                } else {
-                    // Particle is outside all circles
-                    if (p.circleState) {
-                        // Lerp progress towards 0 (back to normal animation)
-                        if (ENABLE_CIRCLE_LERP) {
-                            p.circleLerpProgress = Math.max(0, p.circleLerpProgress - CIRCLE_LERP_SPEED);
-                            // Remove circleState when lerp is complete
-                            if (p.circleLerpProgress <= 0) {
-                                p.circleState = null;
-                            }
-                        } else {
-                            p.circleLerpProgress = 0; // Instant transition
-                            p.circleState = null;
-                        }
-                    } else {
-                        // Ensure lerp progress is 0 when not in circle
-                        p.circleLerpProgress = 0;
-                    }
-                }
-
-                // Get real-time button position for circle animation (if particle is in circle)
-                let realTimeButtonData = null;
-                if (p.circleState && this.buttonsData[p.circleState.buttonIndex]) {
-                    const btnData = this.buttonsData[p.circleState.buttonIndex];
-                    realTimeButtonData = {
-                        x: btnData.x,
-                        y: btnData.y,
-                        radius: btnData.radius * CIRCLE_RADIUS_MULTIPLIER
-                    };
-                }
-
-                let opacity = Math.max(0, 1 - Math.pow(distance / this.currentVisibilityRadius, 2));
-                opacity *= 0.5;
-                // Apply scroll-based visibility multiplier
-                opacity *= this.scrollVisibilityMultiplier;
-
-                // Calculate normal animation position
-                const normalX = currentAnimX;
-                const normalY = currentAnimY;
-                const normalDx = this.currentMouseX - normalX;
-                const normalDy = this.currentMouseY - normalY;
-                const normalAngle = Math.atan2(normalDy, normalDx);
-
-                // Calculate circle animation position (if applicable)
-                let circleX = normalX;
-                let circleY = normalY;
-                let circleAngle = normalAngle;
-
-                if (p.circleState && realTimeButtonData) {
-                    // Circle animation: place particle on circle edge and rotate with polish offsets
-                    // Use real-time button position for accurate circle positioning
-                    const effectiveRadius = realTimeButtonData.radius + p.circleRadiusOffset;
-                    const effectiveAngle = p.circleState.angle + p.circleAngleOffset;
-
-                    circleX = realTimeButtonData.x + effectiveRadius * Math.cos(effectiveAngle);
-                    circleY = realTimeButtonData.y + effectiveRadius * Math.sin(effectiveAngle);
-
-                    // Particle should point tangentially to the circle (perpendicular to radius)
-                    circleAngle = effectiveAngle + Math.PI / 2; // 90 degrees offset for tangent
-                }
-
-                // Lerp between normal and circle animation based on lerp progress
-                const lerp = p.circleLerpProgress;
-                const currentX = normalX + (circleX - normalX) * lerp;
-                const currentY = normalY + (circleY - normalY) * lerp;
-
-                // Lerp angle (handle angle wrapping)
-                let particleAngle;
-                let angleDiff = circleAngle - normalAngle;
-                // Normalize angle difference to -PI to PI range
-                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                particleAngle = normalAngle + angleDiff * lerp;
-
-                this.ctx.save();
-                this.ctx.translate(currentX, currentY);
-                this.ctx.rotate(particleAngle);
-
-                let scale = 1;
-                if (p.circleState) {
-                    // Circle animation: use random scale for variety
-                    scale = p.circleScale;
-                } else if (distance < pushRadius) {
-                    // Normal animation: scale based on distance from mouse
-                    scale = 0.1 + (distance / pushRadius) * 0.9;
-                }
-
-                this.ctx.beginPath();
-                this.ctx.moveTo(-p.size * 2 * scale, 0);
-                this.ctx.lineTo(p.size * 2 * scale, 0);
-
-                this.ctx.globalAlpha = opacity;
-                this.ctx.strokeStyle = this.particleColors[p.colorIndex];
-                this.ctx.lineWidth = 3 * scale;
-                this.ctx.lineCap = 'round';
-                this.ctx.stroke();
-                this.ctx.restore();
+                anyHovered = true;
+            } else if (btnData.isHovered) {
+                btnData.isHovered = false;
+                btnData.element.classList.remove('gesture-hover');
+                this.resetButtonCircleState(index);
             }
         });
 
-        requestAnimationFrame(() => this.animate());
+        this.isHovering = anyHovered;
+    }
+
+    renderParticles() {
+        this.particles.forEach(p => this.renderParticle(p));
+    }
+
+    renderParticle(p) {
+        const dx = this.currentMouseX - p.originX;
+        const dy = this.currentMouseY - p.originY;
+        const distance = Math.hypot(dx, dy);
+
+        if (distance >= this.currentVisibilityRadius) return;
+
+        // Calculate wave animation
+        const waveX = (Math.sin(this.time * p.fx1 + p.phaseX1) + Math.cos(this.time * p.fx2 + p.phaseX2)) * p.amp;
+        const waveY = (Math.sin(this.time * p.fy1 + p.phaseY1) + Math.cos(this.time * p.fy2 + p.phaseY2)) * p.amp;
+
+        // Calculate push force
+        const { pushX, pushY } = this.calculatePushForce(dx, dy, distance);
+
+        const currentAnimX = p.originX + waveX + pushX;
+        const currentAnimY = p.originY + waveY + pushY;
+
+        // Update circle state
+        this.updateParticleCircleState(p, currentAnimX, currentAnimY);
+
+        // Calculate final position (lerp between normal and circle animation)
+        const { x, y, angle, scale } = this.calculateParticleTransform(p, currentAnimX, currentAnimY, distance);
+
+        // Calculate opacity
+        let opacity = Math.max(0, 1 - Math.pow(distance / this.currentVisibilityRadius, 2));
+        opacity *= 0.5 * this.scrollVisibilityMultiplier;
+
+        this.drawParticle(x, y, angle, scale, opacity, p);
+    }
+
+    calculatePushForce(dx, dy, distance) {
+        if (distance >= PARTICLE_PUSH_RADIUS) {
+            return { pushX: 0, pushY: 0 };
+        }
+
+        const angleToParticle = Math.atan2(-dy, -dx);
+        const force = (1 - distance / PARTICLE_PUSH_RADIUS) * 120 * this.forceMultiplier;
+
+        return {
+            pushX: Math.cos(angleToParticle) * force,
+            pushY: Math.sin(angleToParticle) * force
+        };
+    }
+
+    updateParticleCircleState(p, animX, animY) {
+        const circleData = this.findHoveredButtonCircle(animX, animY);
+
+        if (circleData) {
+            if (!p.circleState || p.circleState.buttonIndex !== circleData.buttonIndex) {
+                // Entering new circle
+                const angle = Math.atan2(animY - circleData.y, animX - circleData.x);
+                p.circleState = {
+                    buttonIndex: circleData.buttonIndex,
+                    angle: angle,
+                    targetRadius: circleData.radius
+                };
+                p.circleLerpProgress = 0;
+            } else {
+                // Rotating in circle
+                p.circleState.angle += CIRCLE_ROTATION_SPEED;
+                if (p.circleState.angle > Math.PI * 2) {
+                    p.circleState.angle -= Math.PI * 2;
+                }
+            }
+
+            // Lerp towards circle animation
+            if (CIRCLE_LERP_ENABLED) {
+                p.circleLerpProgress = Math.min(1, p.circleLerpProgress + CIRCLE_LERP_SPEED);
+            } else {
+                p.circleLerpProgress = 1;
+            }
+        } else {
+            // Exiting circle
+            if (p.circleState) {
+                if (CIRCLE_LERP_ENABLED) {
+                    p.circleLerpProgress = Math.max(0, p.circleLerpProgress - CIRCLE_LERP_SPEED);
+                    if (p.circleLerpProgress <= 0) {
+                        p.circleState = null;
+                    }
+                } else {
+                    p.circleLerpProgress = 0;
+                    p.circleState = null;
+                }
+            } else {
+                p.circleLerpProgress = 0;
+            }
+        }
+    }
+
+    findHoveredButtonCircle(x, y) {
+        if (!this.buttonsData) return null;
+
+        for (let i = 0; i < this.buttonsData.length; i++) {
+            const btn = this.buttonsData[i];
+            if (!btn.isHovered) continue;
+
+            const radius = btn.radius * CIRCLE_RADIUS_MULTIPLIER;
+            const dist = Math.hypot(x - btn.x, y - btn.y);
+
+            if (dist <= radius) {
+                return { buttonIndex: i, x: btn.x, y: btn.y, radius };
+            }
+        }
+
+        return null;
+    }
+
+    calculateParticleTransform(p, animX, animY, distance) {
+        const normalAngle = Math.atan2(this.currentMouseY - animY, this.currentMouseX - animX);
+
+        let circleX = animX;
+        let circleY = animY;
+        let circleAngle = normalAngle;
+
+        // Calculate circle position if in circle state
+        if (p.circleState) {
+            const btnData = this.buttonsData[p.circleState.buttonIndex];
+            if (btnData) {
+                const radius = btnData.radius * CIRCLE_RADIUS_MULTIPLIER + p.circleRadiusOffset;
+                const angle = p.circleState.angle + p.circleAngleOffset;
+
+                circleX = btnData.x + radius * Math.cos(angle);
+                circleY = btnData.y + radius * Math.sin(angle);
+                circleAngle = angle + Math.PI / 2; // Tangent direction
+            }
+        }
+
+        // Lerp between normal and circle positions
+        const lerp = p.circleLerpProgress;
+        const x = animX + (circleX - animX) * lerp;
+        const y = animY + (circleY - animY) * lerp;
+
+        // Lerp angle with wrapping
+        let angleDiff = circleAngle - normalAngle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        const angle = normalAngle + angleDiff * lerp;
+
+        // Calculate scale
+        let scale = 1;
+        if (p.circleState) {
+            scale = p.circleScale;
+        } else if (distance < PARTICLE_PUSH_RADIUS) {
+            scale = 0.1 + (distance / PARTICLE_PUSH_RADIUS) * 0.9;
+        }
+
+        return { x, y, angle, scale };
+    }
+
+    drawParticle(x, y, angle, scale, opacity, p) {
+        this.ctx.save();
+        this.ctx.translate(x, y);
+        this.ctx.rotate(angle);
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(-p.size * 2 * scale, 0);
+        this.ctx.lineTo(p.size * 2 * scale, 0);
+
+        this.ctx.globalAlpha = opacity;
+        this.ctx.strokeStyle = this.particleColors[p.colorIndex];
+        this.ctx.lineWidth = 3 * scale;
+        this.ctx.lineCap = 'round';
+        this.ctx.stroke();
+
+        this.ctx.restore();
     }
 }
