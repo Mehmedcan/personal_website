@@ -350,6 +350,9 @@ export class DuckHuntGame {
 
         duck.isDead = true;
 
+        // Show the iconic flash effect
+        this._showFlashEffect(duck.x, duck.y);
+
         // Change to falling sprite
         duck.img.src = '/images/duck-d0.png';
         duck.img.style.transform = 'scaleX(1)';
@@ -361,6 +364,46 @@ export class DuckHuntGame {
         duck.element.style.pointerEvents = 'none';
 
         console.log('Duck Hunt: Duck killed!');
+    }
+
+    /**
+     * Show the iconic NES flash effect - black screen with white square
+     * @private
+     */
+    _showFlashEffect(x, y) {
+        // Create black overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'duck-hunt-flash-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: black;
+            z-index: 99999;
+            pointer-events: none;
+        `;
+
+        // Create white square at click position (duck-sized)
+        const whiteSquare = document.createElement('div');
+        whiteSquare.className = 'duck-hunt-flash-target';
+        whiteSquare.style.cssText = `
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: white;
+            left: ${x}px;
+            top: ${y}px;
+        `;
+
+        overlay.appendChild(whiteSquare);
+        document.body.appendChild(overlay);
+
+        // Remove after 20ms (1/50 second)
+        setTimeout(() => {
+            overlay.remove();
+        }, 20);
     }
 
     /**
