@@ -159,7 +159,7 @@ export class DuckHuntGame {
             display: block;
             transform: scaleY(0);
             transform-origin: bottom;
-            animation: duckHuntBounceIn 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation: duckHuntBounceIn 0.5s cubic-bezier(0.34, 1.7, 0.64, 1) forwards;
         `;
 
         this.backgroundElement.appendChild(img);
@@ -199,7 +199,7 @@ export class DuckHuntGame {
             display: block;
             transform: scaleY(0);
             transform-origin: bottom;
-            animation: duckHuntBounceIn 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation: duckHuntBounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         `;
 
         // Create LEFT grass - positioned to end at main background's left edge
