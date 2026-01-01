@@ -1,8 +1,39 @@
 /**
  * Duck Hunt Game
- * 
- * TODO: Game logic will be implemented later
  */
+
+// ==========================================
+// GAME CONFIGURATION
+// ==========================================
+const DUCK_SPAWN_INTERVAL = 2.0;      // Seconds between duck spawns
+const DUCK_SPEED = 3;                  // Pixels per frame
+const DUCK_DIRECTION_CHANGE_INTERVAL = 1.5;  // Seconds between possible direction changes
+
+// Direction constants
+const DIRECTIONS = {
+    UP: 'up',
+    DIAGONAL_LEFT: 'diagonal-left',
+    DIAGONAL_RIGHT: 'diagonal-right',
+    HORIZONTAL_LEFT: 'horizontal-left',
+    HORIZONTAL_RIGHT: 'horizontal-right'
+};
+
+// Initial spawn directions (only upward movements)
+const INITIAL_DIRECTIONS = [
+    DIRECTIONS.UP,
+    DIRECTIONS.DIAGONAL_LEFT,
+    DIRECTIONS.DIAGONAL_RIGHT
+];
+
+// All possible directions for direction changes
+const ALL_DIRECTIONS = [
+    DIRECTIONS.UP,
+    DIRECTIONS.DIAGONAL_LEFT,
+    DIRECTIONS.DIAGONAL_RIGHT,
+    DIRECTIONS.HORIZONTAL_LEFT,
+    DIRECTIONS.HORIZONTAL_RIGHT
+];
+
 export class DuckHuntGame {
     constructor() {
         this.isActive = false;
@@ -11,6 +42,12 @@ export class DuckHuntGame {
         this.rightGrass = null;
         this.container = null;
         this.previousTheme = null;
+
+        // Duck system
+        this.ducks = [];
+        this.duckSpawnInterval = null;
+        this.animationFrameId = null;
+        this.titleRect = null;
     }
 
     /**
@@ -27,6 +64,7 @@ export class DuckHuntGame {
         // First zoom and position the container, then show background
         this._setupGamePosition().then(() => {
             this._createBackground();
+            this._startDuckSpawning();
         });
 
         console.log('Duck Hunt: Game started!');
@@ -40,6 +78,7 @@ export class DuckHuntGame {
         if (!this.isActive) return;
         this.isActive = false;
 
+        this._stopDuckSpawning();
         this._removeBackground();
         this._resetGamePosition();
         this._restorePreviousTheme();
@@ -168,6 +207,222 @@ export class DuckHuntGame {
                 }
             }, 500);
         }
+    }
+
+    // ==========================================
+    // DUCK SPAWNING & MOVEMENT
+    // ==========================================
+
+    /**
+     * Start spawning ducks
+     * @private
+     */
+    _startDuckSpawning() {
+        // Get title rect for spawn position
+        const title = document.querySelector('.title');
+        if (title) {
+            this.titleRect = title.getBoundingClientRect();
+        }
+
+        // Spawn first duck immediately
+        this._spawnDuck();
+
+        // Set up interval for spawning
+        this.duckSpawnInterval = setInterval(() => {
+            this._spawnDuck();
+        }, DUCK_SPAWN_INTERVAL * 1000);
+
+        // Start animation loop
+        this._startDuckLoop();
+
+        console.log('Duck Hunt: Ducks are spawning!');
+    }
+
+    /**
+     * Stop spawning ducks
+     * @private
+     */
+    _stopDuckSpawning() {
+        if (this.duckSpawnInterval) {
+            clearInterval(this.duckSpawnInterval);
+            this.duckSpawnInterval = null;
+        }
+
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+
+        // Remove all ducks from DOM
+        this.ducks.forEach(duck => {
+            if (duck.element && duck.element.parentNode) {
+                duck.element.remove();
+            }
+        });
+        this.ducks = [];
+    }
+
+    /**
+     * Spawn a new duck
+     * @private
+     */
+    _spawnDuck() {
+        if (!this.titleRect) return;
+
+        // Create duck element
+        const duck = document.createElement('div');
+        duck.className = 'game-duck';
+        duck.style.cssText = `
+            position: fixed;
+            width: 120px;
+            height: 120px;
+            z-index: 50;
+            pointer-events: auto;
+            cursor: crosshair;
+        `;
+
+        // Create duck image
+        const img = document.createElement('img');
+        img.style.cssText = `
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        `;
+        duck.appendChild(img);
+
+        // Random spawn position along the title width
+        const spawnX = this.titleRect.left + Math.random() * this.titleRect.width;
+        const spawnY = this.titleRect.bottom - 30; // Start from behind the text
+
+        // Random initial direction
+        const initialDirection = INITIAL_DIRECTIONS[Math.floor(Math.random() * INITIAL_DIRECTIONS.length)];
+
+        // Duck object
+        const duckObj = {
+            element: duck,
+            img: img,
+            x: spawnX,
+            y: spawnY,
+            direction: initialDirection,
+            lastDirectionChange: Date.now(),
+            isDead: false
+        };
+
+        // Set initial sprite
+        this._updateDuckSprite(duckObj);
+
+        // Position duck
+        duck.style.left = `${spawnX}px`;
+        duck.style.top = `${spawnY}px`;
+
+        document.body.appendChild(duck);
+        this.ducks.push(duckObj);
+    }
+
+    /**
+     * Start the duck animation loop
+     * @private
+     */
+    _startDuckLoop() {
+        const update = () => {
+            if (!this.isActive) return;
+            this._updateDucks();
+            this.animationFrameId = requestAnimationFrame(update);
+        };
+        update();
+    }
+
+    /**
+     * Update all ducks
+     * @private
+     */
+    _updateDucks() {
+        const now = Date.now();
+
+        for (let i = this.ducks.length - 1; i >= 0; i--) {
+            const duck = this.ducks[i];
+            if (duck.isDead) continue;
+
+            // Check for direction change
+            if ((now - duck.lastDirectionChange) / 1000 >= DUCK_DIRECTION_CHANGE_INTERVAL) {
+                // Random chance to change direction
+                if (Math.random() < 0.5) {
+                    duck.direction = ALL_DIRECTIONS[Math.floor(Math.random() * ALL_DIRECTIONS.length)];
+                    this._updateDuckSprite(duck);
+                }
+                duck.lastDirectionChange = now;
+            }
+
+            // Calculate velocity based on direction
+            let vx = 0, vy = 0;
+            switch (duck.direction) {
+                case DIRECTIONS.UP:
+                    vx = 0;
+                    vy = -DUCK_SPEED;
+                    break;
+                case DIRECTIONS.DIAGONAL_LEFT:
+                    vx = -DUCK_SPEED * 0.7;
+                    vy = -DUCK_SPEED * 0.7;
+                    break;
+                case DIRECTIONS.DIAGONAL_RIGHT:
+                    vx = DUCK_SPEED * 0.7;
+                    vy = -DUCK_SPEED * 0.7;
+                    break;
+                case DIRECTIONS.HORIZONTAL_LEFT:
+                    vx = -DUCK_SPEED;
+                    vy = 0;
+                    break;
+                case DIRECTIONS.HORIZONTAL_RIGHT:
+                    vx = DUCK_SPEED;
+                    vy = 0;
+                    break;
+            }
+
+            // Update position
+            duck.x += vx;
+            duck.y += vy;
+
+            duck.element.style.left = `${duck.x}px`;
+            duck.element.style.top = `${duck.y}px`;
+
+            // Check if duck is off screen
+            if (duck.y < -100 || duck.x < -100 || duck.x > window.innerWidth + 100) {
+                duck.element.remove();
+                this.ducks.splice(i, 1);
+            }
+        }
+    }
+
+    /**
+     * Update duck sprite based on direction
+     * @private
+     */
+    _updateDuckSprite(duck) {
+        let spriteSrc = '/images/duck-d3.png';
+        let flipX = false;
+
+        switch (duck.direction) {
+            case DIRECTIONS.UP:
+                spriteSrc = '/images/duck-d3.png';
+                break;
+            case DIRECTIONS.DIAGONAL_LEFT:
+                spriteSrc = '/images/duck-d1.png';
+                break;
+            case DIRECTIONS.DIAGONAL_RIGHT:
+                spriteSrc = '/images/duck-d1.png';
+                flipX = true; // Mirror for right
+                break;
+            case DIRECTIONS.HORIZONTAL_LEFT:
+                spriteSrc = '/images/duck-d2.png';
+                break;
+            case DIRECTIONS.HORIZONTAL_RIGHT:
+                spriteSrc = '/images/duck-d2.png';
+                flipX = true; // Mirror for right
+                break;
+        }
+
+        duck.img.src = spriteSrc;
+        duck.img.style.transform = flipX ? 'scaleX(-1)' : 'scaleX(1)';
     }
 
     // ==========================================
