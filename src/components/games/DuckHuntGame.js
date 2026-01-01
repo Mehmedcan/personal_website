@@ -176,6 +176,19 @@ export class DuckHuntGame {
                             transform: scale(1.5) translateY(28vh);
                         }
                     }
+                    
+                    @keyframes duckFlying {
+                        0%, 100% {
+                            transform: translateY(0) rotate(-3deg);
+                        }
+                        50% {
+                            transform: translateY(-8px) rotate(3deg);
+                        }
+                    }
+                    
+                    .game-duck {
+                        animation: duckFlying 0.3s ease-in-out infinite;
+                    }
                 `;
                 document.head.appendChild(style);
             }
@@ -314,12 +327,40 @@ export class DuckHuntGame {
         // Set initial sprite
         this._updateDuckSprite(duckObj);
 
+        // Add click handler for killing duck
+        duck.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._killDuck(duckObj);
+        });
+
         // Position duck
         duck.style.left = `${spawnX}px`;
         duck.style.top = `${spawnY}px`;
 
         document.body.appendChild(duck);
         this.ducks.push(duckObj);
+    }
+
+    /**
+     * Kill a duck when clicked
+     * @private
+     */
+    _killDuck(duck) {
+        if (duck.isDead) return;
+
+        duck.isDead = true;
+
+        // Change to falling sprite
+        duck.img.src = '/images/duck-d0.png';
+        duck.img.style.transform = 'scaleX(1)';
+
+        // Stop flying animation, add falling style
+        duck.element.style.animation = 'none';
+        duck.element.style.transition = 'transform 0.1s';
+        duck.element.style.cursor = 'default';
+        duck.element.style.pointerEvents = 'none';
+
+        console.log('Duck Hunt: Duck killed!');
     }
 
     /**
@@ -344,7 +385,19 @@ export class DuckHuntGame {
 
         for (let i = this.ducks.length - 1; i >= 0; i--) {
             const duck = this.ducks[i];
-            if (duck.isDead) continue;
+
+            // Handle dead ducks - they fall down
+            if (duck.isDead) {
+                duck.y += DUCK_SPEED * 2; // Fall faster
+                duck.element.style.top = `${duck.y}px`;
+
+                // Remove when below screen
+                if (duck.y > window.innerHeight + 100) {
+                    duck.element.remove();
+                    this.ducks.splice(i, 1);
+                }
+                continue;
+            }
 
             // Check for direction change
             if ((now - duck.lastDirectionChange) / 1000 >= DUCK_DIRECTION_CHANGE_INTERVAL) {
@@ -388,7 +441,7 @@ export class DuckHuntGame {
             duck.element.style.left = `${duck.x}px`;
             duck.element.style.top = `${duck.y}px`;
 
-            // Check if duck is off screen
+            // Check if duck is off screen (top, left, right)
             if (duck.y < -100 || duck.x < -100 || duck.x > window.innerWidth + 100) {
                 duck.element.remove();
                 this.ducks.splice(i, 1);
