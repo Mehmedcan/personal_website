@@ -51,6 +51,7 @@ export class ParticleSystem {
         this.buttons = [];
         this.buttonsData = [];
         this.isHovering = false;
+        this.buttonPositionsDirty = true;
 
         // Visibility control
         this.forceMultiplier = 1;
@@ -58,9 +59,17 @@ export class ParticleSystem {
         this.scrollVisibilityMultiplier = 1.0;
         this.targetScrollVisibility = 1.0;
 
+        // Pre-calculated squared radii for faster distance checks
+        this.visibilityRadiusSq = PARTICLE_DEFAULT_VISIBILITY_RADIUS * PARTICLE_DEFAULT_VISIBILITY_RADIUS;
+        this.pushRadiusSq = PARTICLE_PUSH_RADIUS * PARTICLE_PUSH_RADIUS;
+        this.buttonVisibilityRadiusSq = PARTICLE_BUTTON_VISIBILITY_RADIUS * PARTICLE_BUTTON_VISIBILITY_RADIUS;
+
         // Colors
         this.particleColors = [...DEFAULT_PARTICLE_COLORS];
         this.updateParticleColors();
+
+        // Render batches for path batching optimization
+        this.renderBatches = [[], []]; // One batch per color
     }
 
     enableMobileFallback() {
@@ -79,7 +88,8 @@ export class ParticleSystem {
             width: '100%',
             height: '100%',
             zIndex: '0',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            contain: 'strict'
         });
         document.body.appendChild(this.canvas);
     }
@@ -127,31 +137,32 @@ export class ParticleSystem {
     }
 
     resetButtonCircleState(buttonIndex) {
-        this.particles.forEach(p => {
+        const len = this.particles.length;
+        for (let i = 0; i < len; i++) {
+            const p = this.particles[i];
             if (p.circleState?.buttonIndex === buttonIndex) {
                 p.circleState = null;
             }
-        });
+        }
     }
 
     setupEventListeners() {
         window.addEventListener('resize', () => {
             this.resize();
-            this.updateButtonPositions();
+            this.buttonPositionsDirty = true;
         });
 
         window.addEventListener('mousemove', (e) => {
             this.targetMouseX = e.clientX;
             this.targetMouseY = e.clientY;
-        });
+        }, { passive: true });
 
         window.addEventListener('scroll', () => {
             this.updateScrollVisibility();
-            this.updateButtonPositions();
-        });
+            this.buttonPositionsDirty = true;
+        }, { passive: true });
     }
-
-    // Public API
+    
     setTarget(x, y) {
         this.targetMouseX = x;
         this.targetMouseY = y;
@@ -162,16 +173,22 @@ export class ParticleSystem {
     }
 
     updateButtonPositions() {
+        // Only update if positions are dirty (scroll/resize happened)
+        if (!this.buttonPositionsDirty) return;
+
         this.buttonsData = this.buttons.map((btn, index) => {
             const rect = btn.getBoundingClientRect();
             return {
                 x: rect.left + rect.width / 2,
                 y: rect.top + rect.height / 2,
                 radius: rect.width,
+                radiusSq: rect.width * rect.width, // Pre-calculate squared radius
                 isHovered: this.buttonsData[index]?.isHovered ?? false,
                 element: btn
             };
         });
+
+        this.buttonPositionsDirty = false;
     }
 
     updateScrollVisibility() {
@@ -203,7 +220,7 @@ export class ParticleSystem {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
         this.createParticles();
-        this.updateButtonPositions();
+        this.buttonPositionsDirty = true;
     }
 
     createParticles() {
@@ -254,7 +271,7 @@ export class ParticleSystem {
         this.updateMousePosition();
         this.updateButtonPositions();
         this.updateButtonVisibility();
-        this.renderParticles();
+        this.renderParticlesBatched();
 
         requestAnimationFrame(() => this.animate());
     }
@@ -268,6 +285,8 @@ export class ParticleSystem {
             ? PARTICLE_HOVER_VISIBILITY_RADIUS
             : PARTICLE_DEFAULT_VISIBILITY_RADIUS;
         this.currentVisibilityRadius += (targetRadius - this.currentVisibilityRadius) * 0.1;
+
+        this.visibilityRadiusSq = this.currentVisibilityRadius * this.currentVisibilityRadius;
 
         // Force direction: positive = repulsion, negative = attraction
         const targetMultiplier = this.isHovering ? -2.5 : 1.0;
@@ -293,28 +312,32 @@ export class ParticleSystem {
             this.updateGestureHoverState();
         }
 
-        // Update button opacity based on distance
-        this.buttonsData.forEach(btnData => {
-            const dist = Math.hypot(
-                this.currentMouseX - btnData.x,
-                this.currentMouseY - btnData.y
-            );
+        // Update button opacity based on distance (using squared distance)
+        const len = this.buttonsData.length;
+        for (let i = 0; i < len; i++) {
+            const btnData = this.buttonsData[i];
+            const dx = this.currentMouseX - btnData.x;
+            const dy = this.currentMouseY - btnData.y;
+            const distSq = dx * dx + dy * dy;
 
             let opacity = 0;
-            if (dist < PARTICLE_BUTTON_VISIBILITY_RADIUS) {
+            if (distSq < this.buttonVisibilityRadiusSq) {
+                const dist = Math.sqrt(distSq);
                 opacity = Math.max(0, 1 - Math.pow(dist / PARTICLE_BUTTON_VISIBILITY_RADIUS, 2));
                 opacity = Math.pow(opacity, 0.5);
             }
 
             btnData.element.style.opacity = opacity;
             btnData.element.style.pointerEvents = opacity < 0.1 ? 'none' : 'auto';
-        });
+        }
     }
 
     updateGestureHoverState() {
         let anyHovered = false;
 
-        this.buttonsData.forEach((btnData, index) => {
+        const len = this.buttonsData.length;
+        for (let i = 0; i < len; i++) {
+            const btnData = this.buttonsData[i];
             const rect = btnData.element.getBoundingClientRect();
             const isInside = (
                 this.currentMouseX >= rect.left &&
@@ -332,24 +355,49 @@ export class ParticleSystem {
             } else if (btnData.isHovered) {
                 btnData.isHovered = false;
                 btnData.element.classList.remove('gesture-hover');
-                this.resetButtonCircleState(index);
+                this.resetButtonCircleState(i);
             }
-        });
+        }
 
         this.isHovering = anyHovered;
     }
 
-    renderParticles() {
-        this.particles.forEach(p => this.renderParticle(p));
+    /**
+     * Batched rendering - groups particles by color and renders each group
+     * with a single stroke call, dramatically reducing draw calls
+     */
+    renderParticlesBatched() {
+        // Clear batches
+        this.renderBatches[0].length = 0;
+        this.renderBatches[1].length = 0;
+
+        const len = this.particles.length;
+        const mouseX = this.currentMouseX;
+        const mouseY = this.currentMouseY;
+        const visRadiusSq = this.visibilityRadiusSq;
+
+        for (let i = 0; i < len; i++) {
+            const p = this.particles[i];
+
+            const dx = mouseX - p.originX;
+            const dy = mouseY - p.originY;
+            const distSq = dx * dx + dy * dy;
+
+            if (distSq >= visRadiusSq) continue;
+
+            const distance = Math.sqrt(distSq);
+
+            const renderData = this.processParticle(p, dx, dy, distance);
+            if (renderData) {
+                this.renderBatches[p.colorIndex].push(renderData);
+            }
+        }
+
+        this.renderBatch(0);
+        this.renderBatch(1);
     }
 
-    renderParticle(p) {
-        const dx = this.currentMouseX - p.originX;
-        const dy = this.currentMouseY - p.originY;
-        const distance = Math.hypot(dx, dy);
-
-        if (distance >= this.currentVisibilityRadius) return;
-
+    processParticle(p, dx, dy, distance) {
         // Calculate wave animation
         const waveX = (Math.sin(this.time * p.fx1 + p.phaseX1) + Math.cos(this.time * p.fx2 + p.phaseX2)) * p.amp;
         const waveY = (Math.sin(this.time * p.fy1 + p.phaseY1) + Math.cos(this.time * p.fy2 + p.phaseY2)) * p.amp;
@@ -370,7 +418,36 @@ export class ParticleSystem {
         let opacity = Math.max(0, 1 - Math.pow(distance / this.currentVisibilityRadius, 2));
         opacity *= 0.5 * this.scrollVisibilityMultiplier;
 
-        this.drawParticle(x, y, angle, scale, opacity, p);
+        if (opacity <= 0) return null;
+
+        return { x, y, angle, scale, opacity, size: p.size };
+    }
+    
+    renderBatch(colorIndex) {
+        const batch = this.renderBatches[colorIndex];
+        if (batch.length === 0) return;
+
+        const ctx = this.ctx;
+        ctx.strokeStyle = this.particleColors[colorIndex];
+        ctx.lineCap = 'round';
+
+        const len = batch.length;
+        for (let i = 0; i < len; i++) {
+            const { x, y, angle, scale, opacity, size } = batch[i];
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.globalAlpha = opacity;
+            ctx.lineWidth = 3 * scale;
+
+            ctx.beginPath();
+            ctx.moveTo(-size * 2 * scale, 0);
+            ctx.lineTo(size * 2 * scale, 0);
+            ctx.stroke();
+
+            ctx.restore();
+        }
     }
 
     calculatePushForce(dx, dy, distance) {
@@ -435,14 +512,18 @@ export class ParticleSystem {
     findHoveredButtonCircle(x, y) {
         if (!this.buttonsData) return null;
 
-        for (let i = 0; i < this.buttonsData.length; i++) {
+        const len = this.buttonsData.length;
+        for (let i = 0; i < len; i++) {
             const btn = this.buttonsData[i];
             if (!btn.isHovered) continue;
 
             const radius = btn.radius * CIRCLE_RADIUS_MULTIPLIER;
-            const dist = Math.hypot(x - btn.x, y - btn.y);
+            const dx = x - btn.x;
+            const dy = y - btn.y;
+            const distSq = dx * dx + dy * dy;
+            const radiusSq = radius * radius;
 
-            if (dist <= radius) {
+            if (distSq <= radiusSq) {
                 return { buttonIndex: i, x: btn.x, y: btn.y, radius };
             }
         }
@@ -490,23 +571,5 @@ export class ParticleSystem {
         }
 
         return { x, y, angle, scale };
-    }
-
-    drawParticle(x, y, angle, scale, opacity, p) {
-        this.ctx.save();
-        this.ctx.translate(x, y);
-        this.ctx.rotate(angle);
-
-        this.ctx.beginPath();
-        this.ctx.moveTo(-p.size * 2 * scale, 0);
-        this.ctx.lineTo(p.size * 2 * scale, 0);
-
-        this.ctx.globalAlpha = opacity;
-        this.ctx.strokeStyle = this.particleColors[p.colorIndex];
-        this.ctx.lineWidth = 3 * scale;
-        this.ctx.lineCap = 'round';
-        this.ctx.stroke();
-
-        this.ctx.restore();
     }
 }
