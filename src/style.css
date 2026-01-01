@@ -1040,3 +1040,62 @@ body {
     transform: translateY(-165px);
   }
 }
+
+/* ============================================
+   GAME MODE
+   ============================================ */
+
+/* Hide particles canvas during game mode */
+body.game-mode canvas {
+  display: none !important;
+}
+
+/* Close game button - same position and style as theme toggle */
+#close-game-btn {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: var(--header-bg);
+  border: 2px solid rgba(243, 50, 95, 0.6);
+  color: rgba(243, 50, 95, 0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10002;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(243, 50, 95, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  outline: none;
+  padding: 0;
+}
+
+#close-game-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+#close-game-btn:hover {
+  transform: scale(1.05);
+  border-color: rgba(243, 50, 95, 0.6);
+  color: rgba(243, 50, 95, 0.8);
+  box-shadow: 0 6px 16px rgba(243, 50, 95, 0.2);
+}
+
+/* Hero section modifications during game mode */
+.container.game-active .social-links {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hide gesture UI during game mode */
+body.game-mode .gesture-btn,
+body.game-mode #gesture-info-container,
+body.game-mode #gesture-active-info {
+  display: none !important;
+}

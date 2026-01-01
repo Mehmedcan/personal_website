@@ -25,10 +25,4 @@ export const gamesTemplate = `
       </button>
     </div>
   </div>
-  <div id="game-overlay" class="hidden" style="display: none;">
-    <div class="game-content">
-      <div id="game-container"></div>
-      <button id="close-game">Close Game</button>
-    </div>
-  </div>
 `;
