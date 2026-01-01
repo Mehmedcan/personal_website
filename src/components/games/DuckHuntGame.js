@@ -48,6 +48,10 @@ export class DuckHuntGame {
         this.duckSpawnInterval = null;
         this.animationFrameId = null;
         this.titleRect = null;
+
+        // Flash effect
+        this.flashEnabled = true;
+        this.flashToggleBtn = null;
     }
 
     /**
@@ -65,6 +69,7 @@ export class DuckHuntGame {
         this._setupGamePosition().then(() => {
             this._createBackground();
             this._startDuckSpawning();
+            this._createFlashToggle();
         });
 
         console.log('Duck Hunt: Game started!');
@@ -82,6 +87,7 @@ export class DuckHuntGame {
         this._removeBackground();
         this._resetGamePosition();
         this._restorePreviousTheme();
+        this._removeFlashToggle();
 
         console.log('Duck Hunt: Game stopped!');
     }
@@ -371,6 +377,9 @@ export class DuckHuntGame {
      * @private
      */
     _showFlashEffect(x, y) {
+        // Only show if flash is enabled
+        if (!this.flashEnabled) return;
+
         // Create black overlay
         const overlay = document.createElement('div');
         overlay.className = 'duck-hunt-flash-overlay';
@@ -404,6 +413,123 @@ export class DuckHuntGame {
         setTimeout(() => {
             overlay.remove();
         }, 20);
+    }
+
+    /**
+     * Create flash toggle button - Minimalist design with sliding toggle
+     * @private
+     */
+    _createFlashToggle() {
+        // Container
+        this.flashToggleBtn = document.createElement('div');
+        this.flashToggleBtn.id = 'flash-toggle-btn';
+        this.flashToggleBtn.style.cssText = `
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            height: 48px;
+            padding: 0 16px;
+            border-radius: 12px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(59, 130, 246, 0.6);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 10002;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        `;
+
+        // Label text
+        const label = document.createElement('span');
+        label.style.cssText = `
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            color: rgba(59, 130, 246, 0.9);
+            transition: color 0.3s ease;
+        `;
+        label.textContent = 'NES Flash';
+        this.flashLabel = label;
+
+        // Toggle track
+        const toggleTrack = document.createElement('div');
+        toggleTrack.style.cssText = `
+            width: 40px;
+            height: 22px;
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 11px;
+            position: relative;
+            transition: background 0.3s ease;
+        `;
+        this.toggleTrack = toggleTrack;
+
+        // Toggle knob
+        const toggleKnob = document.createElement('div');
+        toggleKnob.style.cssText = `
+            width: 18px;
+            height: 18px;
+            background: rgba(59, 130, 246, 1);
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 20px;
+            transition: left 0.2s ease, background 0.3s ease;
+        `;
+        this.toggleKnob = toggleKnob;
+
+        toggleTrack.appendChild(toggleKnob);
+        this.flashToggleBtn.appendChild(label);
+        this.flashToggleBtn.appendChild(toggleTrack);
+
+        this.flashToggleBtn.addEventListener('click', () => {
+            this._toggleFlash();
+        });
+
+        document.body.appendChild(this.flashToggleBtn);
+    }
+
+    /**
+     * Toggle flash effect on/off
+     * @private
+     */
+    _toggleFlash() {
+        this.flashEnabled = !this.flashEnabled;
+
+        if (this.flashEnabled) {
+            // ON state
+            this.flashToggleBtn.style.borderColor = 'rgba(59, 130, 246, 0.6)';
+            this.flashToggleBtn.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';
+            this.flashLabel.style.color = 'rgba(59, 130, 246, 0.9)';
+            this.toggleTrack.style.background = 'rgba(59, 130, 246, 0.3)';
+            this.toggleKnob.style.left = '20px';
+            this.toggleKnob.style.background = 'rgba(59, 130, 246, 1)';
+        } else {
+            // OFF state
+            this.flashToggleBtn.style.borderColor = 'rgba(156, 163, 175, 0.6)';
+            this.flashToggleBtn.style.boxShadow = '0 4px 12px rgba(156, 163, 175, 0.15)';
+            this.flashLabel.style.color = 'rgba(156, 163, 175, 0.9)';
+            this.toggleTrack.style.background = 'rgba(156, 163, 175, 0.3)';
+            this.toggleKnob.style.left = '2px';
+            this.toggleKnob.style.background = 'rgba(156, 163, 175, 1)';
+        }
+    }
+
+    /**
+     * Remove flash toggle button
+     * @private
+     */
+    _removeFlashToggle() {
+        if (this.flashToggleBtn) {
+            this.flashToggleBtn.remove();
+            this.flashToggleBtn = null;
+            this.flashLabel = null;
+            this.toggleTrack = null;
+            this.toggleKnob = null;
+        }
     }
 
     /**
