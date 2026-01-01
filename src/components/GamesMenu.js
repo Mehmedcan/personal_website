@@ -1,9 +1,11 @@
 import { query, queryAll } from '../utils/index.js';
-import { LetterFall } from './LetterFall.js';
+import { SaveTheEmojiGame } from './games/SaveTheEmojiGame.js';
 
 /**
- * Games Menu component
- * Handles the game menu toggle and game selection
+ * Games Menu Component
+ * 
+ * Manages the games menu UI and coordinates game lifecycle.
+ * Individual game logic is delegated to separate game classes.
  */
 export class GamesMenu {
     constructor() {
@@ -14,29 +16,53 @@ export class GamesMenu {
 
         this.isGameActive = false;
         this.currentGame = null;
+        this.currentGameInstance = null;
         this.closeBtn = null;
-        this.letterFall = null;
 
         if (!this.container || !this.toggleBtn) return;
 
-        this.init();
+        this._init();
     }
 
-    init() {
+    // ==========================================
+    // INITIALIZATION
+    // ==========================================
+
+    /**
+     * @private
+     */
+    _init() {
+        this._setupMenuToggle();
+        this._setupOutsideClickHandler();
+        this._setupGameButtons();
+        this._setupKeyboardShortcuts();
+    }
+
+    /**
+     * @private
+     */
+    _setupMenuToggle() {
         this.toggleBtn.addEventListener('click', () => {
             this.container.classList.toggle('open');
             this.toggleBtn.classList.toggle('active');
         });
+    }
 
-        // Close menu when clicking outside
+    /**
+     * @private
+     */
+    _setupOutsideClickHandler() {
         document.addEventListener('click', (e) => {
             if (!this.container.contains(e.target)) {
-                this.container.classList.remove('open');
-                this.toggleBtn.classList.remove('active');
+                this._closeMenu();
             }
         });
+    }
 
-        // Handle game selection
+    /**
+     * @private
+     */
+    _setupGameButtons() {
         const gameBtns = queryAll('.game-item-btn');
         gameBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -45,8 +71,12 @@ export class GamesMenu {
                 e.stopPropagation();
             });
         });
+    }
 
-        // ESC key to close game
+    /**
+     * @private
+     */
+    _setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isGameActive) {
                 this.closeGame();
@@ -54,76 +84,120 @@ export class GamesMenu {
         });
     }
 
-    openGame(game) {
-        this.currentGame = game;
-        this.isGameActive = true;
-
-        // Close menu
+    /**
+     * @private
+     */
+    _closeMenu() {
         this.container.classList.remove('open');
         this.toggleBtn.classList.remove('active');
+    }
 
-        // Scroll to top smoothly
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    // ==========================================
+    // GAME LIFECYCLE
+    // ==========================================
 
-        // Wait for scroll to complete, then activate game mode
+    /**
+     * Open and start a game
+     * @param {string} gameId - The game identifier
+     */
+    openGame(gameId) {
+        this.currentGame = gameId;
+        this.isGameActive = true;
+
+        this._closeMenu();
+        this._scrollToTop();
+
+        // Wait for scroll to complete
         setTimeout(() => {
-            // Lock scroll
-            document.body.style.overflow = 'hidden';
-            document.body.classList.add('game-mode');
-
-            // Activate game mode on hero container
-            this.heroContainer?.classList.add('game-active');
-
-            // Hide theme toggle
-            const themeToggle = document.getElementById('theme-toggle');
-            if (themeToggle) {
-                themeToggle.style.display = 'none';
-            }
-
-            // Hide games menu
-            this.container.style.display = 'none';
-
-            // Create close button (same position as theme toggle)
-            this.createCloseButton();
-
-            // Game-specific: Save the Emoji requires dark theme
-            if (game === 'save-the-emoji') {
-                this.initSaveTheEmoji();
-            }
-
-            console.log(`Game started: ${game}`);
+            this._enterGameMode();
+            this._startGame(gameId);
+            console.log(`Game started: ${gameId}`);
         }, 500);
     }
 
     /**
-     * Save the Emoji game-specific initialization
-     * Switches to dark theme for this game only
+     * Close the current game
      */
-    initSaveTheEmoji() {
-        // Save current theme to restore later
-        this.previousTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    closeGame() {
+        if (!this.isGameActive) return;
 
-        // Switch to dark theme for this game
-        document.documentElement.setAttribute('data-theme', 'dark');
+        this._stopCurrentGame();
+        this._exitGameMode();
 
-        // Update theme toggle button state (for when game closes)
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.classList.add('theme-toggle--toggled');
-        }
+        this.isGameActive = false;
+        this.currentGame = null;
+        this.currentGameInstance = null;
 
-        // Start Matter.js letter fall effect after a short delay
-        // This allows the dark theme transition to be visible first
-        setTimeout(() => {
-            this.letterFall = new LetterFall();
-            this.letterFall.start();
-            console.log('Save the Emoji: Letters falling with Matter.js physics!');
-        }, 300);
-
-        console.log('Save the Emoji: Switched to dark mode');
+        console.log('Game closed');
     }
 
-    createCloseButton() {
+    // ==========================================
+    // GAME MODE UI
+    // ==========================================
+
+    /**
+     * @private
+     */
+    _scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**
+     * @private
+     */
+    _enterGameMode() {
+        // Lock scroll
+        document.body.style.overflow = 'hidden';
+        document.body.classList.add('game-mode');
+
+        // Activate game mode on hero container
+        this.heroContainer?.classList.add('game-active');
+
+        // Hide theme toggle
+        this._setThemeToggleVisibility(false);
+
+        // Hide games menu
+        this.container.style.display = 'none';
+
+        // Create close button
+        this._createCloseButton();
+    }
+
+    /**
+     * @private
+     */
+    _exitGameMode() {
+        // Unlock scroll
+        document.body.style.overflow = '';
+        document.body.classList.remove('game-mode');
+
+        // Deactivate game mode on hero container
+        this.heroContainer?.classList.remove('game-active');
+
+        // Show theme toggle
+        this._setThemeToggleVisibility(true);
+
+        // Show games menu
+        this.container.style.display = 'flex';
+
+        // Remove close button
+        this._removeCloseButton();
+    }
+
+    /**
+     * @private
+     */
+    _setThemeToggleVisibility(visible) {
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.style.display = visible ? 'flex' : 'none';
+        }
+    }
+
+    /**
+     * @private
+     */
+    _createCloseButton() {
         this.closeBtn = document.createElement('button');
         this.closeBtn.id = 'close-game-btn';
         this.closeBtn.innerHTML = `
@@ -136,55 +210,51 @@ export class GamesMenu {
         document.body.appendChild(this.closeBtn);
     }
 
-    closeGame() {
-        if (!this.isGameActive) return;
-
-        const wasPlayingSaveTheEmoji = this.currentGame === 'save-the-emoji';
-
-        this.isGameActive = false;
-        this.currentGame = null;
-
-        // Unlock scroll
-        document.body.style.overflow = '';
-        document.body.classList.remove('game-mode');
-
-        // Deactivate game mode on hero container
-        this.heroContainer?.classList.remove('game-active');
-
-        // Show theme toggle
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.style.display = 'flex';
-        }
-
-        // Game-specific: Restore previous theme for Save the Emoji
-        if (wasPlayingSaveTheEmoji) {
-            // Stop the letter fall effect first
-            if (this.letterFall) {
-                this.letterFall.stop();
-                this.letterFall = null;
-            }
-
-            // Restore previous theme
-            if (this.previousTheme) {
-                document.documentElement.setAttribute('data-theme', this.previousTheme);
-                if (themeToggle) {
-                    themeToggle.classList.toggle('theme-toggle--toggled', this.previousTheme === 'dark');
-                }
-                this.previousTheme = null;
-                console.log('Save the Emoji: Restored previous theme');
-            }
-        }
-
-        // Show games menu
-        this.container.style.display = 'flex';
-
-        // Remove close button
+    /**
+     * @private
+     */
+    _removeCloseButton() {
         if (this.closeBtn) {
             this.closeBtn.remove();
             this.closeBtn = null;
         }
+    }
 
-        console.log('Game closed');
+    // ==========================================
+    // GAME FACTORY
+    // ==========================================
+
+    /**
+     * Create and start the appropriate game instance
+     * @private
+     */
+    _startGame(gameId) {
+        // Game factory - add new games here
+        switch (gameId) {
+            case 'save-the-emoji':
+                this.currentGameInstance = new SaveTheEmojiGame();
+                break;
+
+            // Future games:
+            // case 'another-game':
+            //     this.currentGameInstance = new AnotherGame();
+            //     break;
+
+            default:
+                console.warn(`Unknown game: ${gameId}`);
+                return;
+        }
+
+        this.currentGameInstance.start();
+    }
+
+    /**
+     * Stop the current game instance
+     * @private
+     */
+    _stopCurrentGame() {
+        if (this.currentGameInstance) {
+            this.currentGameInstance.stop();
+        }
     }
 }
