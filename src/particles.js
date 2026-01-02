@@ -38,6 +38,7 @@ export class ParticleSystem {
         this.canvas = document.createElement('canvas');
         this.ctx = this.canvas.getContext('2d');
         this.particles = [];
+        this.particlePool = []; // Object pool for reusing particles
         this.time = 0;
         this.animationPaused = false;
 
@@ -114,7 +115,7 @@ export class ParticleSystem {
         this.setupEventListeners();
         this.resize();
         this.updateScrollVisibility();
-        this.createParticles();
+        this.updateParticleGrid();
         this.animate();
     }
 
@@ -164,6 +165,15 @@ export class ParticleSystem {
             // Resume animation if it was paused and we're scrolling back up
             this.resumeAnimation();
         }, { passive: true });
+
+        // Pause animation when tab is hidden (background)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this.animationPaused = true;
+            } else {
+                this.resumeAnimation();
+            }
+        });
     }
 
     setTarget(x, y) {
@@ -222,21 +232,61 @@ export class ParticleSystem {
     resize() {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
-        this.createParticles();
+        this.updateParticleGrid();
         this.buttonPositionsDirty = true;
     }
 
-    createParticles() {
-        this.particles = [];
-
+    /**
+     * Update particle grid with pooling - reuses existing particles
+     * instead of creating new ones on every resize
+     */
+    updateParticleGrid() {
         const rows = Math.ceil(this.canvas.height / PARTICLE_SPACING);
         const cols = Math.ceil(this.canvas.width / PARTICLE_SPACING);
+        const requiredCount = rows * cols;
+        const currentCount = this.particles.length;
 
+        // Reuse existing particles and update their positions
+        let index = 0;
         for (let i = 0; i < cols; i++) {
             for (let j = 0; j < rows; j++) {
-                this.particles.push(this.createParticle(i, j));
+                if (index < currentCount) {
+                    // Reuse existing particle - just update position
+                    this.particles[index].originX = i * PARTICLE_SPACING;
+                    this.particles[index].originY = j * PARTICLE_SPACING;
+                    this.particles[index].circleState = null;
+                    this.particles[index].circleLerpProgress = 0;
+                } else {
+                    // Need more particles - create from pool or new
+                    const particle = this.particlePool.length > 0
+                        ? this.recycleParticle(this.particlePool.pop(), i, j)
+                        : this.createParticle(i, j);
+                    this.particles.push(particle);
+                }
+                index++;
             }
         }
+
+        // Move excess particles to pool (don't delete, reuse later)
+        if (currentCount > requiredCount) {
+            const excess = this.particles.splice(requiredCount);
+            this.particlePool.push(...excess);
+            // Limit pool size to prevent memory bloat
+            if (this.particlePool.length > 500) {
+                this.particlePool.length = 500;
+            }
+        }
+    }
+
+    /**
+     * Recycle a particle from pool with new position
+     */
+    recycleParticle(particle, col, row) {
+        particle.originX = col * PARTICLE_SPACING;
+        particle.originY = row * PARTICLE_SPACING;
+        particle.circleState = null;
+        particle.circleLerpProgress = 0;
+        return particle;
     }
 
     createParticle(col, row) {

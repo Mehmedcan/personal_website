@@ -44,6 +44,7 @@ export class DuckHuntGame {
 
         // Duck system
         this.ducks = [];
+        this.duckPool = []; // Object pool for reusing duck elements
         this.duckSpawnInterval = null;
         this.animationFrameId = null;
         this.titleRect = null;
@@ -54,6 +55,10 @@ export class DuckHuntGame {
 
         // Gesture control
         this.boundGesturePinch = this._handleGesturePinch.bind(this);
+
+        // Visibility change handler
+        this.boundVisibilityChange = this._handleVisibilityChange.bind(this);
+        this.isPaused = false;
     }
 
     /**
@@ -72,6 +77,7 @@ export class DuckHuntGame {
             this._startDuckSpawning();
             this._createFlashToggle();
             this._initGestureListeners();
+            this._initVisibilityListener();
         });
 
         console.log('Duck Hunt: Game started!');
@@ -90,6 +96,7 @@ export class DuckHuntGame {
         this._resetGamePosition();
         this._removeFlashToggle();
         this._removeGestureListeners();
+        this._removeVisibilityListener();
         document.documentElement.removeAttribute('data-game-active');
 
         console.log('Duck Hunt: Game stopped!');
@@ -239,6 +246,14 @@ export class DuckHuntGame {
             }
         });
         this.ducks = [];
+
+        // Clean up pool
+        this.duckPool.forEach(pooledDuck => {
+            if (pooledDuck.element && pooledDuck.element.parentNode) {
+                pooledDuck.element.remove();
+            }
+        });
+        this.duckPool = [];
     }
 
     /**
@@ -248,26 +263,39 @@ export class DuckHuntGame {
     _spawnDuck() {
         if (!this.titleRect) return;
 
-        // Create duck element
-        const duck = document.createElement('div');
-        duck.className = 'game-duck';
-        duck.style.cssText = `
-            position: fixed;
-            width: 120px;
-            height: 120px;
-            z-index: 50;
-            pointer-events: auto;
-            cursor: crosshair;
-        `;
+        // Get duck element from pool or create new one
+        let duck, img;
+        if (this.duckPool.length > 0) {
+            const pooledDuck = this.duckPool.pop();
+            duck = pooledDuck.element;
+            img = pooledDuck.img;
+            duck.style.display = 'block';
+            duck.style.pointerEvents = 'auto';
+            duck.style.cursor = 'crosshair';
+            duck.style.animation = 'duckFlying 0.15s infinite ease-in-out';
+        } else {
+            // Create new duck element
+            duck = document.createElement('div');
+            duck.className = 'game-duck';
+            duck.style.cssText = `
+                position: fixed;
+                width: 120px;
+                height: 120px;
+                z-index: 50;
+                pointer-events: auto;
+                cursor: crosshair;
+            `;
 
-        // Create duck image
-        const img = document.createElement('img');
-        img.style.cssText = `
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        `;
-        duck.appendChild(img);
+            // Create duck image
+            img = document.createElement('img');
+            img.style.cssText = `
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            `;
+            duck.appendChild(img);
+            document.body.appendChild(duck);
+        }
 
         // Random spawn position - center 1/4 of screen width
         const screenWidth = window.innerWidth;
@@ -293,17 +321,16 @@ export class DuckHuntGame {
         // Set initial sprite
         this._updateDuckSprite(duckObj);
 
-        // Add click handler for killing duck
-        duck.addEventListener('click', (e) => {
+        // Add click handler for killing duck (remove old if exists)
+        duck.onclick = (e) => {
             e.stopPropagation();
             this._killDuck(duckObj);
-        });
+        };
 
         // Position duck
         duck.style.left = `${spawnX}px`;
         duck.style.top = `${spawnY}px`;
 
-        document.body.appendChild(duck);
         this.ducks.push(duckObj);
     }
 
@@ -512,6 +539,31 @@ export class DuckHuntGame {
         window.removeEventListener('gesturePinch', this.boundGesturePinch);
     }
 
+    // ==========================================
+    // VISIBILITY PAUSE (TAB HIDDEN)
+    // ==========================================
+
+    /**
+     * @private
+     */
+    _initVisibilityListener() {
+        document.addEventListener('visibilitychange', this.boundVisibilityChange);
+    }
+
+    /**
+     * @private
+     */
+    _removeVisibilityListener() {
+        document.removeEventListener('visibilitychange', this.boundVisibilityChange);
+    }
+
+    /**
+     * @private
+     */
+    _handleVisibilityChange() {
+        this.isPaused = document.hidden;
+    }
+
     /**
      * Handle gesture pinch - shoot ducks
      * @private
@@ -542,6 +594,10 @@ export class DuckHuntGame {
     _startDuckLoop() {
         const update = () => {
             if (!this.isActive) return;
+            if (this.isPaused) {
+                this.animationFrameId = requestAnimationFrame(update);
+                return;
+            }
             this._updateDucks();
             this.animationFrameId = requestAnimationFrame(update);
         };
@@ -563,9 +619,9 @@ export class DuckHuntGame {
                 duck.y += DUCK_SPEED * 2; // Fall faster
                 duck.element.style.top = `${duck.y}px`;
 
-                // Remove when below screen
+                // Return to pool when below screen
                 if (duck.y > window.innerHeight + 100) {
-                    duck.element.remove();
+                    this._returnDuckToPool(duck);
                     this.ducks.splice(i, 1);
                 }
                 continue;
@@ -613,12 +669,23 @@ export class DuckHuntGame {
             duck.element.style.left = `${duck.x}px`;
             duck.element.style.top = `${duck.y}px`;
 
-            // Check if duck is off screen (top, left, right)
+            // Check if duck is off screen (top, left, right) - return to pool
             if (duck.y < -100 || duck.x < -100 || duck.x > window.innerWidth + 100) {
-                duck.element.remove();
+                this._returnDuckToPool(duck);
                 this.ducks.splice(i, 1);
             }
         }
+    }
+
+    /**
+     * Return duck element to pool for reuse
+     * @private
+     */
+    _returnDuckToPool(duck) {
+        duck.element.style.display = 'none';
+        duck.element.style.animation = '';
+        duck.img.style.transform = '';
+        this.duckPool.push({ element: duck.element, img: duck.img });
     }
 
     /**

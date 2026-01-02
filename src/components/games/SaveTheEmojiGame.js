@@ -32,6 +32,7 @@ export class SaveTheEmojiGame {
         this.letterFall = null;
         this.isActive = false;
         this.spiders = [];
+        this.spiderPool = []; // Object pool for reusing spider elements
         this.spiderInterval = null;
         this.animationFrameId = null;
 
@@ -45,6 +46,10 @@ export class SaveTheEmojiGame {
         this.boundGestureCursorMove = this._handleGestureCursorMove.bind(this);
         this.boundGesturePinch = this._handleGesturePinch.bind(this);
         this.isGestureMode = false;
+
+        // Visibility change handler
+        this.boundVisibilityChange = this._handleVisibilityChange.bind(this);
+        this.isPaused = false;
     }
 
     // ==========================================
@@ -64,6 +69,7 @@ export class SaveTheEmojiGame {
         this._startLetterFall();
         this._scheduleSpiderInvasion();
         this._initGestureListeners();
+        this._initVisibilityListener();
 
         console.log('Save the Emoji: Game started!');
         return this;
@@ -80,6 +86,7 @@ export class SaveTheEmojiGame {
         this._stopSpiderInvasion();
         this._removeSlipper();
         this._removeGestureListeners();
+        this._removeVisibilityListener();
         document.documentElement.removeAttribute('data-game-active');
 
         console.log('Save the Emoji: Game stopped!');
@@ -172,6 +179,14 @@ export class SaveTheEmojiGame {
             }
         });
         this.spiders = [];
+
+        // Clean up pool
+        this.spiderPool.forEach(element => {
+            if (element && element.parentNode) {
+                element.remove();
+            }
+        });
+        this.spiderPool = [];
     }
 
     /**
@@ -181,9 +196,17 @@ export class SaveTheEmojiGame {
         const emoji = document.querySelector('.emoji-line');
         if (!emoji) return;
 
-        const spider = document.createElement('div');
-        spider.className = 'game-spider';
-        document.body.appendChild(spider);
+        // Get spider element from pool or create new one
+        let spider;
+        if (this.spiderPool.length > 0) {
+            spider = this.spiderPool.pop();
+            spider.classList.remove('dead');
+            spider.style.display = 'flex';
+        } else {
+            spider = document.createElement('div');
+            spider.className = 'game-spider';
+            document.body.appendChild(spider);
+        }
 
         const { innerWidth: width, innerHeight: height } = window;
         const emojiRect = emoji.getBoundingClientRect();
@@ -224,7 +247,8 @@ export class SaveTheEmojiGame {
             element: spider,
             x: x,
             y: y,
-            speed: speed
+            speed: speed,
+            isDead: false
         };
 
         this.spiders.push(spiderObj);
@@ -240,6 +264,10 @@ export class SaveTheEmojiGame {
     _startSpiderLoop() {
         const update = () => {
             if (!this.isActive) return;
+            if (this.isPaused) {
+                this.animationFrameId = requestAnimationFrame(update);
+                return;
+            }
             this._updateSpiders();
             this.animationFrameId = requestAnimationFrame(update);
         };
@@ -266,8 +294,8 @@ export class SaveTheEmojiGame {
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < 20) {
-                // Collision with emoji!
-                spider.element.remove();
+                // Collision with emoji - return to pool instead of removing
+                this._returnSpiderToPool(spider);
                 this.spiders.splice(i, 1);
                 continue;
             }
@@ -286,6 +314,17 @@ export class SaveTheEmojiGame {
             const angle = Math.atan2(vy, vx) + Math.PI / 2;
             spider.element.style.transform = `rotate(${angle}rad)`;
         }
+    }
+
+    /**
+     * Return spider element to pool for reuse
+     * @private
+     */
+    _returnSpiderToPool(spider) {
+        spider.element.style.display = 'none';
+        spider.element.classList.remove('dead');
+        spider.element.style.transform = '';
+        this.spiderPool.push(spider.element);
     }
 
     // ==========================================
@@ -369,9 +408,8 @@ export class SaveTheEmojiGame {
                 spider.element.classList.add('dead');
 
                 setTimeout(() => {
-                    if (spider.element && spider.element.parentNode) {
-                        spider.element.remove();
-                    }
+                    // Return to pool instead of removing from DOM
+                    this._returnSpiderToPool(spider);
                     const index = this.spiders.indexOf(spider);
                     if (index > -1) this.spiders.splice(index, 1);
                 }, 500);
@@ -439,6 +477,32 @@ export class SaveTheEmojiGame {
 
         // Check for spider kills
         this._checkSpiderKill();
+    }
+
+
+    // ==========================================
+    // VISIBILITY PAUSE (TAB HIDDEN)
+    // ==========================================
+
+    /**
+     * @private
+     */
+    _initVisibilityListener() {
+        document.addEventListener('visibilitychange', this.boundVisibilityChange);
+    }
+
+    /**
+     * @private
+     */
+    _removeVisibilityListener() {
+        document.removeEventListener('visibilitychange', this.boundVisibilityChange);
+    }
+
+    /**
+     * @private
+     */
+    _handleVisibilityChange() {
+        this.isPaused = document.hidden;
     }
 
 
