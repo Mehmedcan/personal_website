@@ -41,7 +41,6 @@ export class DuckHuntGame {
         this.leftGrass = null;
         this.rightGrass = null;
         this.container = null;
-        this.previousTheme = null;
 
         // Duck system
         this.ducks = [];
@@ -65,8 +64,6 @@ export class DuckHuntGame {
         if (this.isActive) return this;
         this.isActive = true;
 
-        this._savePreviousTheme();
-        this._switchToLightTheme();
         document.documentElement.setAttribute('data-game-active', 'duck-hunt');
 
         // First zoom and position the container, then show background
@@ -91,7 +88,6 @@ export class DuckHuntGame {
         this._stopDuckSpawning();
         this._removeBackground();
         this._resetGamePosition();
-        this._restorePreviousTheme();
         this._removeFlashToggle();
         this._removeGestureListeners();
         document.documentElement.removeAttribute('data-game-active');
@@ -105,49 +101,6 @@ export class DuckHuntGame {
      */
     get active() {
         return this.isActive;
-    }
-
-    // ==========================================
-    // THEME MANAGEMENT
-    // ==========================================
-
-    /**
-     * @private
-     */
-    _savePreviousTheme() {
-        this.previousTheme = document.documentElement.getAttribute('data-theme') || 'light';
-    }
-
-    /**
-     * @private
-     */
-    _switchToLightTheme() {
-        document.documentElement.setAttribute('data-theme', 'light');
-
-        // Update theme toggle button state
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.classList.remove('theme-toggle--toggled');
-        }
-
-        console.log('Duck Hunt: Switched to light mode');
-    }
-
-    /**
-     * @private
-     */
-    _restorePreviousTheme() {
-        if (!this.previousTheme) return;
-
-        document.documentElement.setAttribute('data-theme', this.previousTheme);
-
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.classList.toggle('theme-toggle--toggled', this.previousTheme === 'dark');
-        }
-
-        this.previousTheme = null;
-        console.log('Duck Hunt: Restored previous theme');
     }
 
     // ==========================================

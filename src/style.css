@@ -1219,3 +1219,32 @@ body.game-mode #gesture-active-info {
 .game-spider {
   z-index: 10000;
 }
+
+
+/* ============================================
+   DARK MODE GAME ASSET FILTERS
+   ============================================ */
+
+/* Invert spider emoji in dark mode */
+[data-theme="dark"] .game-spider::after {
+  filter: invert(1);
+}
+
+/* Invert duck hunt assets in dark mode */
+[data-theme="dark"] .game-duck img {
+  filter: invert(1);
+}
+
+[data-theme="dark"] .duck-hunt-background img {
+  filter: invert(1);
+}
+
+[data-theme="dark"] .duck-hunt-grass-left img,
+[data-theme="dark"] .duck-hunt-grass-right img {
+  filter: invert(1);
+}
+
+/* Invert slipper emoji in dark mode */
+[data-theme="dark"] .game-slipper::after {
+  filter: invert(1);
+}

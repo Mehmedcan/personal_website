@@ -30,7 +30,6 @@ const SPIDER_SPAWN_COUNT = 1;       // Number of spiders to spawn per interval
 export class SaveTheEmojiGame {
     constructor() {
         this.letterFall = null;
-        this.previousTheme = null;
         this.isActive = false;
         this.spiders = [];
         this.spiderInterval = null;
@@ -60,8 +59,6 @@ export class SaveTheEmojiGame {
         if (this.isActive) return this;
         this.isActive = true;
 
-        this._savePreviousTheme();
-        this._switchToLightTheme();
         this._initSlipper();
         document.documentElement.setAttribute('data-game-active', 'save-the-emoji');
         this._startLetterFall();
@@ -84,7 +81,6 @@ export class SaveTheEmojiGame {
         this._removeSlipper();
         this._removeGestureListeners();
         document.documentElement.removeAttribute('data-game-active');
-        this._restorePreviousTheme();
 
         console.log('Save the Emoji: Game stopped!');
     }
@@ -95,49 +91,6 @@ export class SaveTheEmojiGame {
      */
     get active() {
         return this.isActive;
-    }
-
-    // ==========================================
-    // THEME MANAGEMENT
-    // ==========================================
-
-    /**
-     * @private
-     */
-    _savePreviousTheme() {
-        this.previousTheme = document.documentElement.getAttribute('data-theme') || 'light';
-    }
-
-    /**
-     * @private
-     */
-    _switchToLightTheme() {
-        document.documentElement.setAttribute('data-theme', 'light');
-
-        // Update theme toggle button state
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.classList.remove('theme-toggle--toggled');
-        }
-
-        console.log('Save the Emoji: Switched to light mode');
-    }
-
-    /**
-     * @private
-     */
-    _restorePreviousTheme() {
-        if (!this.previousTheme) return;
-
-        document.documentElement.setAttribute('data-theme', this.previousTheme);
-
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.classList.toggle('theme-toggle--toggled', this.previousTheme === 'dark');
-        }
-
-        this.previousTheme = null;
-        console.log('Save the Emoji: Restored previous theme');
     }
 
     // ==========================================
