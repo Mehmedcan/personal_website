@@ -3,7 +3,7 @@
  */
 const jobExperiences = [
     {
-        logo: '/images/mage.jpg',
+        logo: '/images/mage.webp',
         company: 'MAGE Games',
         companyUrl: 'https://www.linkedin.com/company/magegames',
         title: 'Game Developer',
