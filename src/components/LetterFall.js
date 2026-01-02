@@ -22,7 +22,11 @@ const DEFAULT_CONFIG = {
 
     // Selectors
     containerSelector: '.container',
-    textSelectors: '.intro-text, .title'
+    textSelectors: '.intro-text, .title',
+
+    // Explosion settings
+    explosion: false,
+    explosionStrength: 15
 };
 
 /**
@@ -296,11 +300,26 @@ export class LetterFall {
             }
         );
 
-        // Apply random initial velocity
-        Matter.Body.setVelocity(body, {
-            x: (Math.random() - 0.5) * initialVelocity.x,
-            y: Math.random() * initialVelocity.y
-        });
+        // Apply initial velocity
+        if (this.config.explosion) {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+
+            const dx = body.position.x - centerX;
+            const dy = body.position.y - centerY;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+            Matter.Body.setVelocity(body, {
+                x: (dx / dist) * this.config.explosionStrength,
+                y: (dy / dist) * this.config.explosionStrength
+            });
+        } else {
+            // Default downward random velocity
+            Matter.Body.setVelocity(body, {
+                x: (Math.random() - 0.5) * initialVelocity.x,
+                y: Math.random() * initialVelocity.y
+            });
+        }
 
         // Apply angular velocity for tumbling effect
         Matter.Body.setAngularVelocity(body, (Math.random() - 0.5) * angularVelocity);

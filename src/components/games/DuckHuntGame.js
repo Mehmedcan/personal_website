@@ -6,7 +6,7 @@
 // GAME CONFIGURATION
 // ==========================================
 const DUCK_SPAWN_INTERVAL = 2.0;      // Seconds between duck spawns
-const DUCK_SPEED = 3;                  // Pixels per frame
+const DUCK_SPEED = 3.5;                  // Pixels per frame
 const DUCK_DIRECTION_CHANGE_INTERVAL = 1.5;  // Seconds between possible direction changes
 
 // Direction constants

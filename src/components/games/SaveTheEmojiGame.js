@@ -3,7 +3,7 @@ import { LetterFall } from '../LetterFall.js';
 // ==========================================
 // GAME CONFIGURATION
 // ==========================================
-const SPIDER_TRAVEL_TIME = 5.0;     // Time in seconds to reach emoji from off-screen
+const SPIDER_TRAVEL_TIME = 7.0;     // Time in seconds to reach emoji from off-screen
 const SPIDER_SPAWN_INTERVAL = 1.0;  // Spawn frequency in seconds
 const SPIDER_SPAWN_COUNT = 1;       // Number of spiders to spawn per interval
 
@@ -111,7 +111,9 @@ export class SaveTheEmojiGame {
         // Small delay to let the dark theme transition be visible first
         setTimeout(() => {
             this.letterFall = new LetterFall({
-                autoFadeOut: false
+                autoFadeOut: false,
+                explosion: true,
+                explosionStrength: 20
             });
             this.letterFall.start();
 

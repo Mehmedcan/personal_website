@@ -1225,8 +1225,8 @@ body.game-mode #gesture-active-info {
    DARK MODE GAME ASSET FILTERS
    ============================================ */
 
-/* Invert spider emoji in dark mode */
-[data-theme="dark"] .game-spider::after {
+/* Invert spider emoji in dark mode (only when alive) */
+[data-theme="dark"] .game-spider:not(.dead)::after {
   filter: invert(1);
 }
 
@@ -1244,7 +1244,4 @@ body.game-mode #gesture-active-info {
   filter: invert(1);
 }
 
-/* Invert slipper emoji in dark mode */
-[data-theme="dark"] .game-slipper::after {
-  filter: invert(1);
-}
+/* Slipper and death effect keep original colors in dark mode */
