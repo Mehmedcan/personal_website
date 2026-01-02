@@ -645,6 +645,33 @@ body {
   pointer-events: none;
 }
 
+/* Webcam Preview */
+#webcam-preview-container {
+  position: fixed;
+  bottom: 265px;
+  right: 20px;
+  z-index: 10001;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+#webcam-preview-container.hidden {
+  opacity: 0;
+  transform: translateY(10px) scale(0.95);
+  pointer-events: none;
+}
+
+#webcam-preview {
+  width: 200px;
+  height: 150px;
+  object-fit: cover;
+  transform: scaleX(-1);
+  display: block;
+}
+
 /* Gesture Active Info */
 #gesture-active-info {
   position: fixed;
@@ -878,7 +905,8 @@ body {
   .gesture-btn,
   #custom-cursor,
   #gesture-info-container,
-  #gesture-active-info {
+  #gesture-active-info,
+  #webcam-preview-container {
     display: none !important;
   }
 }
@@ -1219,7 +1247,8 @@ body.game-mode canvas {
 /* Hide gesture UI during game mode */
 body.game-mode .gesture-btn,
 body.game-mode #gesture-info-container,
-body.game-mode #gesture-active-info {
+body.game-mode #gesture-active-info,
+body.game-mode #webcam-preview-container {
   display: none !important;
 }
 

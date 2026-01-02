@@ -11,6 +11,9 @@ export const gestureUITemplate = `
       <img src="/images/arrow.webp" alt="pointing arrow">
     </div>
   </div>
+  <div id="webcam-preview-container" class="hidden">
+    <video id="webcam-preview" autoplay playsinline muted></video>
+  </div>
   <div id="gesture-active-info" class="hidden">
     <div class="active-info-box">
       <img src="/images/pinch.webp" alt="pinch gesture" class="pinch-icon">

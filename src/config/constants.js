@@ -32,3 +32,7 @@ export const CIRCLE_ROTATION_SPEED = 0.015;
 // Theme
 export const THEME_TRANSITION_DURATION = 500;
 export const DEFAULT_PARTICLE_COLORS = ['#646cff', '#9089fc'];
+
+// Webcam Preview
+export const WEBCAM_PREVIEW_OPACITY = 0.85;
+

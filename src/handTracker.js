@@ -1,5 +1,6 @@
 import { Hands } from '@mediapipe/hands';
 import { Camera } from '@mediapipe/camera_utils';
+import { WEBCAM_PREVIEW_OPACITY } from './config/constants.js';
 
 // Finger landmark indices
 const FINGER_INDICES = {
@@ -20,12 +21,20 @@ export class HandTracker {
     this.onHandMove = onHandMove;
     this.isRunning = false;
 
-    this.videoElement = this.createVideoElement();
+    this.videoElement = this.getVideoElement();
+    this.previewContainer = document.getElementById('webcam-preview-container');
     this.hands = this.initializeHands();
     this.camera = this.initializeCamera();
   }
 
-  createVideoElement() {
+  getVideoElement() {
+    // Use the preview video element from the template
+    const existingVideo = document.getElementById('webcam-preview');
+    if (existingVideo) {
+      return existingVideo;
+    }
+    
+    // Fallback: create hidden video element
     const video = document.createElement('video');
     video.style.display = 'none';
     video.id = 'input-video';
@@ -94,6 +103,13 @@ export class HandTracker {
     try {
       await this.camera.start();
       this.isRunning = true;
+      
+      // Show webcam preview with configured opacity
+      if (this.previewContainer) {
+        this.previewContainer.classList.remove('hidden');
+        this.videoElement.style.opacity = WEBCAM_PREVIEW_OPACITY;
+      }
+      
       console.log('Hand tracking started');
     } catch (err) {
       console.error('Camera access error:', err);
@@ -103,6 +119,21 @@ export class HandTracker {
 
   stop() {
     this.isRunning = false;
+    
+    // Hide webcam preview
+    if (this.previewContainer) {
+      this.previewContainer.classList.add('hidden');
+    }
+    
     console.log('Hand tracking stopped');
+  }
+
+  /**
+   * Sets the webcam preview opacity (0 to 1)
+   */
+  setPreviewOpacity(opacity) {
+    if (this.videoElement) {
+      this.videoElement.style.opacity = Math.max(0, Math.min(1, opacity));
+    }
   }
 }
