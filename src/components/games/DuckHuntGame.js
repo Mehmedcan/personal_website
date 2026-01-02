@@ -817,6 +817,9 @@ export class DuckHuntGame {
      * @private
      */
     _createSideGrass(titleRect, mainImg) {
+        // Prevent duplicate grass creation
+        if (this.leftGrass || this.rightGrass) return;
+        
         const imgHeight = mainImg.offsetHeight;
         const titleHeight = titleRect.height;
         const titleBottom = titleRect.bottom;
@@ -1136,6 +1139,8 @@ export class DuckHuntGame {
         this._removeRestartButton();
         this._removeFailGlow();
         this._removeFlashToggle();
+        this._removeGestureListeners();
+        this._removeVisibilityListener();
 
         // Reset state
         this.isActive = false;

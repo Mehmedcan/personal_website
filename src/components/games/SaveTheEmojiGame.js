@@ -676,6 +676,8 @@ export class SaveTheEmojiGame {
         this.scoreboard.remove();
         this._removeRestartButton();
         this._removeFailGlow();
+        this._removeGestureListeners();
+        this._removeVisibilityListener();
 
         // Reset state
         this.isActive = false;
