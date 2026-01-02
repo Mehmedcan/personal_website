@@ -113,7 +113,8 @@ export class SaveTheEmojiGame {
             this.letterFall = new LetterFall({
                 autoFadeOut: false,
                 explosion: true,
-                explosionStrength: 20
+                explosionStrength: 20,
+                hasBoundaries: false
             });
             this.letterFall.start();
 

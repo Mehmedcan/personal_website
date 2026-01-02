@@ -26,7 +26,10 @@ const DEFAULT_CONFIG = {
 
     // Explosion settings
     explosion: false,
-    explosionStrength: 15
+    explosionStrength: 15,
+
+    // Boundary settings
+    hasBoundaries: true
 };
 
 /**
@@ -172,16 +175,21 @@ export class LetterFall {
         const world = this.engine.world;
         const { innerWidth: width, innerHeight: height } = window;
 
-        const boundaries = [
-            // Floor - at the bottom edge of the screen
-            Matter.Bodies.rectangle(width / 2, height + 50, width * 2, 100, { isStatic: true }),
-            // Left wall
-            Matter.Bodies.rectangle(-50, height / 2, 100, height * 2, { isStatic: true }),
-            // Right wall
-            Matter.Bodies.rectangle(width + 50, height / 2, 100, height * 2, { isStatic: true })
-        ];
+        const objectsToAdd = [...this.letterBodies];
 
-        Matter.Composite.add(world, [...boundaries, ...this.letterBodies]);
+        if (this.config.hasBoundaries) {
+            const boundaries = [
+                // Floor - at the bottom edge of the screen
+                Matter.Bodies.rectangle(width / 2, height + 50, width * 2, 100, { isStatic: true }),
+                // Left wall
+                Matter.Bodies.rectangle(-50, height / 2, 100, height * 2, { isStatic: true }),
+                // Right wall
+                Matter.Bodies.rectangle(width + 50, height / 2, 100, height * 2, { isStatic: true })
+            ];
+            objectsToAdd.push(...boundaries);
+        }
+
+        Matter.Composite.add(world, objectsToAdd);
     }
 
     /**
@@ -369,15 +377,43 @@ export class LetterFall {
      * @private
      */
     _updateLetterPositions() {
-        this.letterBodies.forEach((body, index) => {
-            const element = this.letterElements[index];
-            const pos = this.originalPositions[index];
-            if (!element || !pos) return;
+        const { innerWidth: width, innerHeight: height } = window;
+        const padding = 200; // Buffer for off-screen detection
 
+        for (let i = this.letterBodies.length - 1; i >= 0; i--) {
+            const body = this.letterBodies[i];
+            const element = this.letterElements[i];
+            const pos = this.originalPositions[i];
+
+            if (!element || !pos) continue;
+
+            // Update DOM element position
             element.style.left = `${body.position.x - pos.width / 2}px`;
             element.style.top = `${body.position.y - pos.height / 2}px`;
             element.style.transform = `rotate(${body.angle}rad)`;
-        });
+
+            // Performance: Cull elements that are far off-screen
+            const isOffScreen =
+                body.position.y > height + padding ||
+                body.position.y < -padding ||
+                body.position.x < -padding ||
+                body.position.x > width + padding;
+
+            if (isOffScreen) {
+                // Remove from Matter.js world
+                Matter.Composite.remove(this.engine.world, body);
+
+                // Remove from DOM
+                if (element.parentNode) {
+                    element.remove();
+                }
+
+                // Remove from tracking arrays
+                this.letterBodies.splice(i, 1);
+                this.letterElements.splice(i, 1);
+                this.originalPositions.splice(i, 1);
+            }
+        }
     }
 
     // ==========================================
