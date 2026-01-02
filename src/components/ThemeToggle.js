@@ -13,12 +13,11 @@ export class ThemeToggle {
     }
 
     /**
-     * Initializes theme from localStorage or system preference
+     * Initializes theme from localStorage or defaults to dark
      */
     initTheme() {
         const savedTheme = localStorage.getItem('theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const theme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+        const theme = savedTheme || 'dark';
 
         document.documentElement.setAttribute('data-theme', theme);
         this.updateToggleState(theme);
