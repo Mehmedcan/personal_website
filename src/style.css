@@ -946,6 +946,7 @@ body {
   margin: 0;
   min-width: 256px;
   /* 1.3x of 180px */
+  font-size: 1.2rem;
 }
 
 #games-menu-toggle.active {
@@ -1041,6 +1042,7 @@ body {
   border-radius: 12px;
   font-family: 'Outfit', sans-serif;
   font-weight: 600;
+  font-size: 1.2rem;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
