@@ -320,7 +320,7 @@ export class DuckHuntGame {
         this._showFlashEffect(duck.x, duck.y);
 
         // Change to falling sprite
-        duck.img.src = '/images/duck-d0.png';
+        duck.img.src = '/images/duck-d0.webp';
         duck.img.style.transform = 'scaleX(1)';
 
         // Stop flying animation, add falling style
@@ -626,25 +626,25 @@ export class DuckHuntGame {
      * @private
      */
     _updateDuckSprite(duck) {
-        let spriteSrc = '/images/duck-d3.png';
+        let spriteSrc = '/images/duck-d3.webp';
         let flipX = false;
 
         switch (duck.direction) {
             case DIRECTIONS.UP:
-                spriteSrc = '/images/duck-d3.png';
+                spriteSrc = '/images/duck-d3.webp';
                 break;
             case DIRECTIONS.DIAGONAL_LEFT:
-                spriteSrc = '/images/duck-d1.png';
+                spriteSrc = '/images/duck-d1.webp';
                 break;
             case DIRECTIONS.DIAGONAL_RIGHT:
-                spriteSrc = '/images/duck-d1.png';
+                spriteSrc = '/images/duck-d1.webp';
                 flipX = true; // Mirror for right
                 break;
             case DIRECTIONS.HORIZONTAL_LEFT:
-                spriteSrc = '/images/duck-d2.png';
+                spriteSrc = '/images/duck-d2.webp';
                 break;
             case DIRECTIONS.HORIZONTAL_RIGHT:
-                spriteSrc = '/images/duck-d2.png';
+                spriteSrc = '/images/duck-d2.webp';
                 flipX = true; // Mirror for right
                 break;
         }
@@ -682,7 +682,7 @@ export class DuckHuntGame {
 
         // Create the main image
         const img = document.createElement('img');
-        img.src = '/images/duck-hunt-background.png';
+        img.src = '/images/duck-hunt-background.webp';
         img.alt = 'Duck Hunt Background';
         img.style.cssText = `
             width: 100%;
@@ -747,7 +747,7 @@ export class DuckHuntGame {
             `;
 
             const leftImg = document.createElement('img');
-            leftImg.src = '/images/duck-hunt-grass.png';
+            leftImg.src = '/images/duck-hunt-grass.webp';
             leftImg.alt = '';
             leftImg.style.cssText = grassImgStyle;
 
@@ -769,7 +769,7 @@ export class DuckHuntGame {
             `;
 
             const rightImg = document.createElement('img');
-            rightImg.src = '/images/duck-hunt-grass.png';
+            rightImg.src = '/images/duck-hunt-grass.webp';
             rightImg.alt = '';
             rightImg.style.cssText = grassImgStyle;
 

@@ -12,7 +12,7 @@ const jobExperiences = [
         description: 'MAGE is a company consisting of sector veterans, enabling game studios to accelerate their production times and create top-tier games.<br><br>→ Technologies: Unity'
     },
     {
-        logo: '/images/metazo.png',
+        logo: '/images/metazo.webp',
         company: 'Metazo',
         companyUrl: 'https://www.linkedin.com/company/metazo/',
         title: 'Software Developer',
@@ -21,7 +21,7 @@ const jobExperiences = [
         description: 'Metazo is a multi-platform Metaverse project.<br><br>- I am responsible for the preparation of the 3D graphics running on the browser and the development of the game mechanics. <br>- I work on the online interaction of users and the sustainability of this interaction.<br>- I also work actively in the field of optimization of graphics and integration with game engines.<br><br>→ Technologies: PlayCanvas, Unity, Unreal Engine 5, Javascript, WebGL, C#, C++'
     },
     {
-        logo: '/images/2medya.png',
+        logo: '/images/2medya.webp',
         company: '2MEDYA',
         companyUrl: 'https://www.linkedin.com/company/2medya/',
         title: 'Team Lead',
@@ -30,7 +30,7 @@ const jobExperiences = [
         description: 'I was responsible for the management of the hypercasual game development process. <br><br>- I provided the production of the game development team in accordance with agile manifestos. <br>- At the same time, I was actively worked on hypercasual game development and design.<br><br>→ Technologies: Unity, C#, Agile'
     },
     {
-        logo: '/images/tiplay.png',
+        logo: '/images/tiplay.webp',
         company: 'Tiplay',
         companyUrl: 'https://www.linkedin.com/company/tiplaystudio/',
         title: 'Game Developer',
@@ -39,7 +39,7 @@ const jobExperiences = [
         description: 'Tiplay studio has 2 games that have ranked US Top Charts Action #1 and US Top Charts Action #5. I have developed dozens of hyper casual games here.<br><br>- I worked as a mentor in the intern program.<br>- I made a casual puzzle game.<br>- I developed hyper casual games and special mechanics. <br><br>→ Technologies: Unity, C#, ShaderLab'
     },
     {
-        logo: '/images/eic.png',
+        logo: '/images/eic.webp',
         company: 'Eletronic Ice Cream',
         companyUrl: 'https://www.linkedin.com/company/unavailable/',
         title: 'Game Developer',
@@ -48,7 +48,7 @@ const jobExperiences = [
         description: 'I was involved in the start-up, which developed a hypercasual game consisting of 4 people, from its establishment to its sale.<br><br>- I took part in a game project that soft launched.<br>- I developed dozens of hyper casual games with different mechanics.<br>- I made level design for games.<br><br>→ Technologies: Unity, C#, ShaderLab'
     },
     {
-        logo: '/images/deu.png',
+        logo: '/images/deu.webp',
         company: 'Dokuz Eylul University',
         companyUrl: 'https://www.linkedin.com/school/dokuz-eylul-university/',
         title: '<strong>B.S. in Computer Engineering, <em>earned Sept 2017</em></strong>',

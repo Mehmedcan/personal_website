@@ -8,12 +8,12 @@ export const gestureUITemplate = `
       Enables webcam-based hand tracking, allowing you to control the interface using pinch gestures.
     </div>
     <div class="gesture-info-arrow">
-      <img src="/images/arrow.png" alt="pointing arrow">
+      <img src="/images/arrow.webp" alt="pointing arrow">
     </div>
   </div>
   <div id="gesture-active-info" class="hidden">
     <div class="active-info-box">
-      <img src="/images/pinch.png" alt="pinch gesture" class="pinch-icon">
+      <img src="/images/pinch.webp" alt="pinch gesture" class="pinch-icon">
       <p>Pinch & hold to scroll the page.<br>Pinch to click buttons.</p>
     </div>
   </div>

@@ -2,9 +2,9 @@
  * Interests data structure
  */
 const interests = [
-    { icon: '/images/unity.png', title: 'Unity' },
-    { icon: '/images/playcanvas.png', title: 'PlayCanvas' },
-    { icon: '/images/unreal.png', title: 'Unreal Engine' }
+    { icon: '/images/unity.webp', title: 'Unity' },
+    { icon: '/images/playcanvas.webp', title: 'PlayCanvas' },
+    { icon: '/images/unreal.webp', title: 'Unreal Engine' }
 ];
 
 /**
