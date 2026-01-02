@@ -877,20 +877,6 @@ body {
    MEDIA QUERIES
    ============================================ */
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-
-  body {
-    background: radial-gradient(circle at 50% 50%, #f9f9f9 0%, #f0f0f0 100%);
-  }
-
-  .title {
-    text-shadow: 0 0 30px rgba(100, 108, 255, 0.1);
-  }
-}
 
 @media (max-width: 600px) {
   .job-row {
