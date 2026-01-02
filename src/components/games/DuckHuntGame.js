@@ -11,6 +11,10 @@ const DUCK_SPAWN_INTERVAL = 2.0;      // Seconds between duck spawns
 const DUCK_SPEED = 3.5;                  // Pixels per frame
 const DUCK_DIRECTION_CHANGE_INTERVAL = 1.5;  // Seconds between possible direction changes
 
+// Lives system
+const MAX_LIVES = 3;
+const FAIL_GLOW_INTERVAL = 250;       // 0.25 seconds between glows
+
 // Direction constants
 const DIRECTIONS = {
     UP: 'up',
@@ -65,6 +69,13 @@ export class DuckHuntGame {
         // Score system
         this.score = 0;
         this.scoreboard = new Scoreboard('duckHunt_highScore');
+
+        // Lives system
+        this.lives = MAX_LIVES;
+        this.livesElement = null;
+        this.isFailed = false;
+        this.restartButton = null;
+        this.failGlowElement = null;
     }
 
     /**
@@ -78,10 +89,14 @@ export class DuckHuntGame {
         document.documentElement.setAttribute('data-game-active', 'duck-hunt');
 
         this.score = 0; // Reset score
+        this.lives = MAX_LIVES; // Reset lives
+        this.isFailed = false; // Reset fail state
+        
         // First zoom and position the container, then show background
         this._setupGamePosition().then(() => {
             this._createBackground();
             this.scoreboard.init();
+            this._createLivesDisplay();
             this._startDuckSpawning();
             this._createFlashToggle();
             this._initGestureListeners();
@@ -103,6 +118,9 @@ export class DuckHuntGame {
         this._removeBackground();
         this._resetGamePosition();
         this.scoreboard.remove();
+        this._removeLivesDisplay();
+        this._removeRestartButton();
+        this._removeFailGlow();
         this._removeFlashToggle();
         this._removeGestureListeners();
         this._removeVisibilityListener();
@@ -682,10 +700,15 @@ export class DuckHuntGame {
             duck.element.style.left = `${duck.x}px`;
             duck.element.style.top = `${duck.y}px`;
 
-            // Check if duck is off screen (top, left, right) - return to pool
+            // Check if duck is off screen (top, left, right) - duck escaped!
             if (duck.y < -100 || duck.x < -100 || duck.x > window.innerWidth + 100) {
                 this._returnDuckToPool(duck);
                 this.ducks.splice(i, 1);
+                
+                // Lose a life when duck escapes (only if not already failed)
+                if (!this.isFailed) {
+                    this._loseLife();
+                }
             }
         }
     }
@@ -897,4 +920,230 @@ export class DuckHuntGame {
     }
 
     // Scoreboard logic moved to Scoreboard.js component
+
+    // ==========================================
+    // LIVES SYSTEM
+    // ==========================================
+
+    /**
+     * Create lives display below scoreboard
+     * @private
+     */
+    _createLivesDisplay() {
+        if (this.livesElement) return;
+
+        this.livesElement = document.createElement('div');
+        this.livesElement.className = 'game-lives';
+        this._updateLivesDisplay();
+        document.body.appendChild(this.livesElement);
+    }
+
+    /**
+     * Update lives display to reflect current lives
+     * @private
+     */
+    _updateLivesDisplay() {
+        if (!this.livesElement) return;
+
+        let heartsHTML = '';
+        for (let i = 0; i < MAX_LIVES; i++) {
+            if (i < this.lives) {
+                // Full heart
+                heartsHTML += '<img src="/images/heart0.webp" alt="❤️" class="heart-icon heart-full" onerror="this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<span class=heart-emoji>❤️</span>\')">';
+            } else {
+                // Empty heart
+                heartsHTML += '<img src="/images/heart1.webp" alt="🖤" class="heart-icon heart-empty" onerror="this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<span class=heart-emoji>🩶</span>\')">';
+            }
+        }
+        this.livesElement.innerHTML = heartsHTML;
+    }
+
+    /**
+     * Remove lives display
+     * @private
+     */
+    _removeLivesDisplay() {
+        if (this.livesElement) {
+            this.livesElement.remove();
+            this.livesElement = null;
+        }
+    }
+
+    /**
+     * Handle losing a life
+     * @private
+     */
+    _loseLife() {
+        if (this.isFailed) return;
+
+        this.lives--;
+        this._updateLivesDisplay();
+
+        if (this.lives <= 0) {
+            // Game over - trigger full fail sequence
+            this._triggerFail();
+        } else {
+            // Still have lives - flash once
+            this._playFailGlow(1, null);
+        }
+    }
+
+    // ==========================================
+    // FAIL SEQUENCE
+    // ==========================================
+
+    /**
+     * Trigger fail sequence when all lives are lost
+     * @private
+     */
+    _triggerFail() {
+        if (this.isFailed) return;
+        this.isFailed = true;
+
+        // Stop duck spawning
+        if (this.duckSpawnInterval) {
+            clearInterval(this.duckSpawnInterval);
+            this.duckSpawnInterval = null;
+        }
+
+        // Stop animation frame
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+
+        // Freeze all ducks
+        this.ducks.forEach(duck => {
+            if (duck.element) {
+                duck.element.style.animation = 'none';
+            }
+        });
+
+        console.log('Duck Hunt: Game Over! All lives lost!');
+
+        // Play fail glow sequence (3 times), then show restart button
+        this._playFailGlow(3, () => {
+            this._showRestartButton();
+        });
+    }
+
+    /**
+     * Play the fail glow animation sequence
+     * @param {number} count - Number of times to flash
+     * @param {Function} callback - Called after glow sequence completes
+     * @private
+     */
+    _playFailGlow(count, callback) {
+        this._createFailGlow();
+        
+        // Start with glow active immediately
+        this.failGlowElement.classList.add('active');
+
+        let glowCount = 1; // Already showed first glow
+        const totalToggles = count * 2;
+        
+        const glowInterval = setInterval(() => {
+            // Toggle glow visibility
+            if (this.failGlowElement) {
+                this.failGlowElement.classList.toggle('active');
+            }
+
+            glowCount++;
+
+            if (glowCount >= totalToggles) {
+                clearInterval(glowInterval);
+                // Remove glow element after sequence
+                if (!this.isFailed) {
+                    this._removeFailGlow();
+                }
+                if (callback) callback();
+            }
+        }, FAIL_GLOW_INTERVAL);
+    }
+
+    /**
+     * Create the fail glow overlay element
+     * @private
+     */
+    _createFailGlow() {
+        if (this.failGlowElement) return;
+
+        this.failGlowElement = document.createElement('div');
+        this.failGlowElement.className = 'game-fail-glow';
+        document.body.appendChild(this.failGlowElement);
+    }
+
+    /**
+     * Remove the fail glow element
+     * @private
+     */
+    _removeFailGlow() {
+        if (this.failGlowElement) {
+            this.failGlowElement.remove();
+            this.failGlowElement = null;
+        }
+    }
+
+    /**
+     * Show the restart button below scoreboard
+     * @private
+     */
+    _showRestartButton() {
+        if (this.restartButton) return;
+
+        this.restartButton = document.createElement('button');
+        this.restartButton.className = 'game-restart-btn';
+        this.restartButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M8 16H3v5"/>
+            </svg>
+        `;
+        this.restartButton.title = 'Restart';
+        
+        // Add click handler
+        this.restartButton.addEventListener('click', () => {
+            this._restart();
+        });
+
+        document.body.appendChild(this.restartButton);
+    }
+
+    /**
+     * Remove the restart button
+     * @private
+     */
+    _removeRestartButton() {
+        if (this.restartButton) {
+            this.restartButton.remove();
+            this.restartButton = null;
+        }
+    }
+
+    /**
+     * Restart the game
+     * @private
+     */
+    _restart() {
+        // Clean up current game state but keep game active
+        this._stopDuckSpawning();
+        this._removeBackground();
+        this._resetGamePosition();
+        this.scoreboard.remove();
+        this._removeLivesDisplay();
+        this._removeRestartButton();
+        this._removeFailGlow();
+        this._removeFlashToggle();
+
+        // Reset state
+        this.isActive = false;
+        this.isFailed = false;
+        this.score = 0;
+        this.lives = MAX_LIVES;
+
+        // Start fresh
+        this.start();
+    }
 }

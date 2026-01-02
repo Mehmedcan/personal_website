@@ -767,6 +767,61 @@ body {
 
 
 /* ============================================
+   GAME LIVES DISPLAY
+   ============================================ */
+
+.game-lives {
+  position: fixed;
+  top: calc(2rem + 80px + 8px); /* Below scoreboard */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10001;
+  pointer-events: none;
+  animation: slide-down-score 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  animation-delay: 0.1s;
+  opacity: 0;
+}
+
+.heart-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  transition: transform 0.2s ease, opacity 0.3s ease;
+}
+
+.heart-full {
+  opacity: 1;
+}
+
+.heart-empty {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+/* Emoji fallback for hearts */
+.heart-emoji {
+  font-size: 28px;
+  line-height: 32px;
+}
+
+/* Heart loss animation */
+@keyframes heart-break {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.4;
+  }
+}
+
+
+/* ============================================
    MEDIA QUERIES
    ============================================ */
 
@@ -1397,6 +1452,11 @@ body.game-mode #gesture-active-info {
     opacity: 1;
     transform: translateX(-50%) scale(1);
   }
+}
+
+/* Duck Hunt specific restart button position (below lives) */
+[data-game-active="duck-hunt"] .game-restart-btn {
+  top: calc(2rem + 80px + 8px + 32px + 48px); /* scoreboard + lives + gap */
 }
 
 
