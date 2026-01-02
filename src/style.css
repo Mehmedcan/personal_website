@@ -216,22 +216,48 @@ body {
   justify-content: center;
   z-index: 10002;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0,  0, 0.1);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   outline: none;
   padding: 0;
   overflow: hidden;
+
+  /* Mobile/touch polish */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-#theme-toggle:hover {
-  transform: scale(1.05) rotate(5deg);
+/* Keyboard focus (accessible), but don't show focus rings for mouse clicks */
+#theme-toggle:focus-visible {
   border-color: var(--accent-color);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25), 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-#theme-toggle:active {
-  transform: scale(0.95);
+#theme-toggle:focus:not(:focus-visible) {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Hover/active transforms only on devices that actually support hover (prevents stuck hover on mobile) */
+@media (hover: hover) and (pointer: fine) {
+  #theme-toggle:hover {
+    /* Removed the rotate “warp” feel; keep a clean, subtle hover affordance */
+    transform: scale(1.05);
+    border-color: var(--accent-color);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  #theme-toggle:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Touch devices: never apply hover/active transforms (avoids skewed/stuck state) */
+@media (hover: none), (pointer: coarse) {
+  #theme-toggle:hover,
+  #theme-toggle:active {
+    transform: none;
+  }
 }
 
 /* Theme Toggle Animation */
@@ -1495,5 +1521,4 @@ body.game-mode #webcam-preview-container {
 [data-game-active="duck-hunt"] .game-restart-btn {
   top: calc(2rem + 80px + 8px + 32px + 48px); /* scoreboard + lives + gap */
 }
-
 
