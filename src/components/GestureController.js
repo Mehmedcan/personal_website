@@ -144,6 +144,18 @@ export class GestureController {
             return;
         }
 
+        // When a game is active, block clicks on main menu elements only
+        // (social links, theme toggle, games menu) but allow everything else (game interactions)
+        const isGameActive = document.documentElement.hasAttribute('data-game-active');
+        if (isGameActive) {
+            const isMainMenuElement = targetElement.closest(
+                '.social-links, #theme-toggle, #games-menu-container, .gesture-btn'
+            );
+            if (isMainMenuElement) {
+                return;
+            }
+        }
+
         // Ensure the element has a click method
         if (typeof targetElement.click !== 'function') {
             return;
