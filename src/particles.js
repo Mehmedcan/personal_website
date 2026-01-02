@@ -39,6 +39,7 @@ export class ParticleSystem {
         this.ctx = this.canvas.getContext('2d');
         this.particles = [];
         this.time = 0;
+        this.animationPaused = false;
 
         // Mouse/cursor tracking
         this.targetMouseX = 0;
@@ -160,9 +161,11 @@ export class ParticleSystem {
         window.addEventListener('scroll', () => {
             this.updateScrollVisibility();
             this.buttonPositionsDirty = true;
+            // Resume animation if it was paused and we're scrolling back up
+            this.resumeAnimation();
         }, { passive: true });
     }
-    
+
     setTarget(x, y) {
         this.targetMouseX = x;
         this.targetMouseY = y;
@@ -264,16 +267,35 @@ export class ParticleSystem {
     }
 
     animate() {
+        // Update scroll visibility first (always needed to detect when to resume)
+        this.updateVisibilityState();
+
+        // If particles are completely invisible, pause animation loop
+        if (this.scrollVisibilityMultiplier < 0.01) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.animationPaused = true;
+            return; // Stop the animation loop completely
+        }
+
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.time += 1;
 
-        this.updateVisibilityState();
         this.updateMousePosition();
         this.updateButtonPositions();
         this.updateButtonVisibility();
         this.renderParticlesBatched();
 
         requestAnimationFrame(() => this.animate());
+    }
+
+    /**
+     * Resume animation if it was paused
+     */
+    resumeAnimation() {
+        if (this.animationPaused) {
+            this.animationPaused = false;
+            this.animate();
+        }
     }
 
     updateVisibilityState() {
@@ -422,7 +444,7 @@ export class ParticleSystem {
 
         return { x, y, angle, scale, opacity, size: p.size };
     }
-    
+
     renderBatch(colorIndex) {
         const batch = this.renderBatches[colorIndex];
         if (batch.length === 0) return;
