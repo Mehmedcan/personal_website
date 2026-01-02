@@ -1,3 +1,5 @@
+import { Scoreboard } from './Scoreboard.js';
+
 /**
  * Duck Hunt Game
  */
@@ -59,6 +61,10 @@ export class DuckHuntGame {
         // Visibility change handler
         this.boundVisibilityChange = this._handleVisibilityChange.bind(this);
         this.isPaused = false;
+
+        // Score system
+        this.score = 0;
+        this.scoreboard = new Scoreboard('duckHunt_highScore');
     }
 
     /**
@@ -71,9 +77,11 @@ export class DuckHuntGame {
 
         document.documentElement.setAttribute('data-game-active', 'duck-hunt');
 
+        this.score = 0; // Reset score
         // First zoom and position the container, then show background
         this._setupGamePosition().then(() => {
             this._createBackground();
+            this.scoreboard.init();
             this._startDuckSpawning();
             this._createFlashToggle();
             this._initGestureListeners();
@@ -94,6 +102,7 @@ export class DuckHuntGame {
         this._stopDuckSpawning();
         this._removeBackground();
         this._resetGamePosition();
+        this.scoreboard.remove();
         this._removeFlashToggle();
         this._removeGestureListeners();
         this._removeVisibilityListener();
@@ -357,6 +366,10 @@ export class DuckHuntGame {
         duck.element.style.pointerEvents = 'none';
 
         console.log('Duck Hunt: Duck killed!');
+
+        // Increment score
+        this.score += 1;
+        this.scoreboard.update(this.score);
     }
 
     /**
@@ -882,4 +895,6 @@ export class DuckHuntGame {
             this.rightGrass = null;
         }
     }
+
+    // Scoreboard logic moved to Scoreboard.js component
 }

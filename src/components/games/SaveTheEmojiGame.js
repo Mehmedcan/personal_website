@@ -1,4 +1,5 @@
 import { LetterFall } from '../LetterFall.js';
+import { Scoreboard } from './Scoreboard.js';
 
 // ==========================================
 // GAME CONFIGURATION
@@ -50,6 +51,10 @@ export class SaveTheEmojiGame {
         // Visibility change handler
         this.boundVisibilityChange = this._handleVisibilityChange.bind(this);
         this.isPaused = false;
+
+        // Score system
+        this.score = 0;
+        this.scoreboard = new Scoreboard('saveTheEmoji_highScore');
     }
 
     // ==========================================
@@ -64,7 +69,9 @@ export class SaveTheEmojiGame {
         if (this.isActive) return this;
         this.isActive = true;
 
+        this.score = 0; // Reset score
         this._initSlipper();
+        this.scoreboard.init();
         document.documentElement.setAttribute('data-game-active', 'save-the-emoji');
         this._startLetterFall();
         this._scheduleSpiderInvasion();
@@ -85,6 +92,7 @@ export class SaveTheEmojiGame {
         this._stopLetterFall();
         this._stopSpiderInvasion();
         this._removeSlipper();
+        this.scoreboard.remove();
         this._removeGestureListeners();
         this._removeVisibilityListener();
         document.documentElement.removeAttribute('data-game-active');
@@ -415,6 +423,10 @@ export class SaveTheEmojiGame {
                     this._returnSpiderToPool(spider);
                     const index = this.spiders.indexOf(spider);
                     if (index > -1) this.spiders.splice(index, 1);
+
+                    // Increment score
+                    this.score += 1;
+                    this.scoreboard.update(this.score);
                 }, 500);
             }
         }
@@ -509,15 +521,5 @@ export class SaveTheEmojiGame {
     }
 
 
-    // ==========================================
-    // GAME LOGIC (TO BE IMPLEMENTED)
-    // ==========================================
-
-    // Future methods for game mechanics:
-    // - _initializeGameState()
-    // - _handlePlayerInput()
-    // - _updateScore()
-    // - _checkWinCondition()
-    // - _showGameOver()
-    // - _restartGame()
+    // Scoreboard logic moved to Scoreboard.js component
 }
