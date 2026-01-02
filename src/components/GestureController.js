@@ -119,8 +119,16 @@ export class GestureController {
     triggerClick() {
         let targetElement = document.elementFromPoint(this.currentX, this.currentY);
 
+        if (!targetElement) return;
+
+        // If we hit an SVG or its children, find the closest clickable parent (button, a, etc.)
+        const clickableParent = targetElement.closest('button, a, [onclick], [role="button"]');
+        if (clickableParent) {
+            targetElement = clickableParent;
+        }
+
         // Fallback: check social links directly if no element found
-        if (!targetElement || !targetElement.closest('a')) {
+        if (!targetElement.closest('a')) {
             const buttons = queryAll('.social-links a');
             for (const btn of buttons) {
                 const rect = btn.getBoundingClientRect();
@@ -131,7 +139,15 @@ export class GestureController {
             }
         }
 
-        if (!targetElement) return;
+        // Prevent clicking the stop-gesture button via gesture (would be confusing UX)
+        if (targetElement === this.stopBtn || targetElement.closest('#stop-gesture')) {
+            return;
+        }
+
+        // Ensure the element has a click method
+        if (typeof targetElement.click !== 'function') {
+            return;
+        }
 
         const link = targetElement.closest('a');
         if (link?.href) {
