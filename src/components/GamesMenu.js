@@ -222,6 +222,15 @@ export class GamesMenu {
     _setThemeToggleVisibility(visible) {
         const themeToggle = document.getElementById('theme-toggle');
         if (themeToggle) {
+            // Don't show theme toggle if gesture mode is active
+            const customCursor = document.getElementById('custom-cursor');
+            const isGestureActive = customCursor && customCursor.style.display === 'block';
+
+            if (visible && isGestureActive) {
+                // Keep hidden during gesture mode
+                return;
+            }
+
             themeToggle.style.display = visible ? 'flex' : 'none';
         }
     }
