@@ -34,6 +34,8 @@ export class GamesMenu {
      */
     _init() {
         this._setupMenuToggle();
+        this._setupMenuHover();
+        this._setupGestureCursorHover();
         this._setupOutsideClickHandler();
         this._setupGameButtons();
         this._setupKeyboardShortcuts();
@@ -43,10 +45,64 @@ export class GamesMenu {
      * @private
      */
     _setupMenuToggle() {
-        this.toggleBtn.addEventListener('click', () => {
-            this.container.classList.toggle('open');
-            this.toggleBtn.classList.toggle('active');
+        // Click no longer toggles - hover handles open/close
+        // Click on toggle button does nothing to prevent accidental closes
+        this.toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
+    }
+
+    /**
+     * @private
+     */
+    _setupMenuHover() {
+        // Open menu on hover
+        this.container.addEventListener('mouseenter', () => {
+            this._openMenu();
+        });
+
+        // Close menu when mouse leaves
+        this.container.addEventListener('mouseleave', () => {
+            this._closeMenu();
+        });
+    }
+
+    /**
+     * @private
+     * Listen for gesture cursor movement and handle hover-like behavior
+     */
+    _setupGestureCursorHover() {
+        this.isGestureCursorOver = false;
+
+        window.addEventListener('gestureCursorMove', (e) => {
+            const { x, y } = e.detail;
+            const containerRect = this.container.getBoundingClientRect();
+            
+            // Check if cursor is over the container (including expanded area when open)
+            const isOver = (
+                x >= containerRect.left &&
+                x <= containerRect.right &&
+                y >= containerRect.top &&
+                y <= containerRect.bottom
+            );
+
+            // Handle enter/leave transitions
+            if (isOver && !this.isGestureCursorOver) {
+                this.isGestureCursorOver = true;
+                this._openMenu();
+            } else if (!isOver && this.isGestureCursorOver) {
+                this.isGestureCursorOver = false;
+                this._closeMenu();
+            }
+        });
+    }
+
+    /**
+     * @private
+     */
+    _openMenu() {
+        this.container.classList.add('open');
+        this.toggleBtn.classList.add('active');
     }
 
     /**
