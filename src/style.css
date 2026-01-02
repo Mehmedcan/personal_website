@@ -1224,6 +1224,11 @@ body.game-mode #gesture-active-info {
   transform: scale(0.8);
 }
 
+/* Frozen spider - stop animation when game fails */
+.game-spider.frozen::after {
+  animation: none;
+}
+
 
 /* ============================================
    SPOTLIGHT REVEAL EFFECT
@@ -1273,8 +1278,13 @@ body.game-mode #gesture-active-info {
 }
 
 [data-game-active="save-the-emoji"] a,
-[data-game-active="save-the-emoji"] button {
+[data-game-active="save-the-emoji"] button:not(.game-restart-btn) {
   cursor: none !important;
+}
+
+/* Restart button should have pointer cursor */
+.game-restart-btn {
+  cursor: pointer !important;
 }
 
 
@@ -1313,3 +1323,80 @@ body.game-mode #gesture-active-info {
 }
 
 /* Slipper and death effect keep original colors in dark mode */
+
+
+/* ============================================
+   GAME FAIL SEQUENCE
+   ============================================ */
+
+.game-fail-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 10020;
+  box-shadow: inset 0 0 100px 30px rgba(220, 38, 38, 0);
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+.game-fail-glow.active {
+  box-shadow: inset 0 0 100px 30px rgba(220, 38, 38, 0.6);
+}
+
+/* Restart Button - Square with icon */
+.game-restart-btn {
+  position: fixed;
+  top: calc(2rem + 80px + 48px); /* Below scoreboard with 3x gap (16px * 3 = 48px) */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 156px;  /* 52px * 3 = 156px */
+  height: 156px; /* 52px * 3 = 156px */
+  padding: 0;
+  background: var(--header-bg);
+  color: var(--text-color);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color);
+  border-radius: 28px; /* Proportionally larger */
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 10021;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fade-in-scale 0.3s ease-out forwards;
+}
+
+.game-restart-btn:hover {
+  background: var(--accent-color);
+  color: white;
+  transform: translateX(-50%) scale(1.05);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.game-restart-btn:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+.game-restart-btn svg {
+  width: 72px;  /* 24px * 3 = 72px */
+  height: 72px; /* 24px * 3 = 72px */
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+

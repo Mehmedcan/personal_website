@@ -8,6 +8,10 @@ const SPIDER_TRAVEL_TIME = 7.0;     // Time in seconds to reach emoji from off-s
 const SPIDER_SPAWN_INTERVAL = 1.0;  // Spawn frequency in seconds
 const SPIDER_SPAWN_COUNT = 1;       // Number of spiders to spawn per interval
 
+// Fail sequence configuration
+const FAIL_GLOW_INTERVAL = 100;     // 0.25 seconds between glows (2x faster)
+const FAIL_GLOW_COUNT = 3;          // Number of red glow flashes
+
 
 /**
  * Save the Emoji Game
@@ -55,6 +59,11 @@ export class SaveTheEmojiGame {
         // Score system
         this.score = 0;
         this.scoreboard = new Scoreboard('saveTheEmoji_highScore');
+
+        // Fail state
+        this.isFailed = false;
+        this.restartButton = null;
+        this.failGlowElement = null;
     }
 
     // ==========================================
@@ -70,6 +79,7 @@ export class SaveTheEmojiGame {
         this.isActive = true;
 
         this.score = 0; // Reset score
+        this.isFailed = false; // Reset fail state
         this._initSlipper();
         this.scoreboard.init();
         document.documentElement.setAttribute('data-game-active', 'save-the-emoji');
@@ -93,6 +103,8 @@ export class SaveTheEmojiGame {
         this._stopSpiderInvasion();
         this._removeSlipper();
         this.scoreboard.remove();
+        this._removeRestartButton();
+        this._removeFailGlow();
         this._removeGestureListeners();
         this._removeVisibilityListener();
         document.documentElement.removeAttribute('data-game-active');
@@ -292,6 +304,9 @@ export class SaveTheEmojiGame {
         const emoji = document.querySelector('.emoji-line');
         if (!emoji) return;
 
+        // Don't update if game has failed
+        if (this.isFailed) return;
+
         const emojiRect = emoji.getBoundingClientRect();
         const emojiX = emojiRect.left + emojiRect.width / 2;
         const emojiY = emojiRect.top + emojiRect.height / 2;
@@ -305,10 +320,9 @@ export class SaveTheEmojiGame {
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < 20) {
-                // Collision with emoji - return to pool instead of removing
-                this._returnSpiderToPool(spider);
-                this.spiders.splice(i, 1);
-                continue;
+                // Spider reached the emoji - GAME OVER!
+                this._triggerFail();
+                return;
             }
 
             // Move towards emoji
@@ -329,11 +343,13 @@ export class SaveTheEmojiGame {
 
     /**
      * Return spider element to pool for reuse
+    /**
+     * Return spider element to pool for reuse
      * @private
      */
     _returnSpiderToPool(spider) {
         spider.element.style.display = 'none';
-        spider.element.classList.remove('dead');
+        spider.element.classList.remove('dead', 'frozen');
         spider.element.style.transform = '';
         this.spiderPool.push(spider.element);
     }
@@ -387,7 +403,7 @@ export class SaveTheEmojiGame {
      * @private
      */
     _handleMouseDown() {
-        if (!this.slipper) return;
+        if (!this.slipper || this.isFailed) return;
 
         // Trigger animation
         this.slipper.classList.remove('slapping');
@@ -402,6 +418,8 @@ export class SaveTheEmojiGame {
      * @private
      */
     _checkSpiderKill() {
+        if (this.isFailed) return; // Don't kill spiders when failed
+        
         const killRadius = 60;
 
         for (let i = this.spiders.length - 1; i >= 0; i--) {
@@ -479,7 +497,7 @@ export class SaveTheEmojiGame {
      * @private
      */
     _handleGesturePinch(e) {
-        if (!this.slipper) return;
+        if (!this.slipper || this.isFailed) return;
 
         // Update cursor position from pinch event
         this.cursor.x = e.detail.x;
@@ -522,4 +540,149 @@ export class SaveTheEmojiGame {
 
 
     // Scoreboard logic moved to Scoreboard.js component
+
+    // ==========================================
+    // FAIL SEQUENCE
+    // ==========================================
+
+    /**
+     * Trigger fail sequence when spider reaches emoji
+     * @private
+     */
+    _triggerFail() {
+        if (this.isFailed) return;
+        this.isFailed = true;
+
+        // Stop spider spawning
+        if (this.spiderInterval) {
+            clearInterval(this.spiderInterval);
+            this.spiderInterval = null;
+        }
+
+        // Freeze all spiders (stop animation)
+        this.spiders.forEach(spider => {
+            if (spider.element) {
+                spider.element.classList.add('frozen');
+            }
+        });
+
+        console.log('Save the Emoji: Game Over! Spider reached the emoji!');
+
+        // Play fail glow sequence, then show restart button
+        this._playFailGlow(() => {
+            this._showRestartButton();
+        });
+    }
+
+    /**
+     * Play the fail glow animation sequence
+     * @param {Function} callback - Called after glow sequence completes
+     * @private
+     */
+    _playFailGlow(callback) {
+        this._createFailGlow();
+        
+        // Start with glow active immediately
+        this.failGlowElement.classList.add('active');
+
+        let glowCount = 1; // Already showed first glow
+        const glowInterval = setInterval(() => {
+            // Toggle glow visibility
+            if (this.failGlowElement) {
+                this.failGlowElement.classList.toggle('active');
+            }
+
+            glowCount++;
+
+            // Each toggle is half of a flash cycle
+            // We need FAIL_GLOW_COUNT full cycles = FAIL_GLOW_COUNT * 2 toggles
+            if (glowCount >= FAIL_GLOW_COUNT * 2) {
+                clearInterval(glowInterval);
+                if (callback) callback();
+            }
+        }, FAIL_GLOW_INTERVAL);
+    }
+
+    /**
+     * Create the fail glow overlay element
+     * @private
+     */
+    _createFailGlow() {
+        if (this.failGlowElement) return;
+
+        this.failGlowElement = document.createElement('div');
+        this.failGlowElement.className = 'game-fail-glow';
+        document.body.appendChild(this.failGlowElement);
+    }
+
+    /**
+     * Remove the fail glow element
+     * @private
+     */
+    _removeFailGlow() {
+        if (this.failGlowElement) {
+            this.failGlowElement.remove();
+            this.failGlowElement = null;
+        }
+    }
+
+    /**
+     * Show the restart button below scoreboard
+     * @private
+     */
+    _showRestartButton() {
+        if (this.restartButton) return;
+
+        this.restartButton = document.createElement('button');
+        this.restartButton.className = 'game-restart-btn';
+        this.restartButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M8 16H3v5"/>
+            </svg>
+        `;
+        this.restartButton.title = 'Restart';
+        
+        // Add click handler
+        this.restartButton.addEventListener('click', () => {
+            this._restart();
+        });
+
+        document.body.appendChild(this.restartButton);
+    }
+
+    /**
+     * Remove the restart button
+     * @private
+     */
+    _removeRestartButton() {
+        if (this.restartButton) {
+            this.restartButton.remove();
+            this.restartButton = null;
+        }
+    }
+
+    /**
+     * Restart the game
+     * @private
+     */
+    _restart() {
+        // Clean up current game state but keep game active
+        this._stopLetterFall();
+        this._stopSpiderInvasion();
+        this._removeSlipper();
+        this.scoreboard.remove();
+        this._removeRestartButton();
+        this._removeFailGlow();
+
+        // Reset state
+        this.isActive = false;
+        this.isFailed = false;
+        this.score = 0;
+
+        // Start fresh
+        this.start();
+    }
 }
