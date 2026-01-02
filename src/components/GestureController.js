@@ -100,6 +100,11 @@ export class GestureController {
      */
     handlePinchEnd() {
         if (this.isPinching && !this.isPinchScrolling) {
+            // Dispatch pinch event for games to listen
+            window.dispatchEvent(new CustomEvent('gesturePinch', {
+                detail: { x: this.currentX, y: this.currentY }
+            }));
+
             this.triggerClick();
         }
 
@@ -151,14 +156,22 @@ export class GestureController {
 
         this.particles.setTarget(this.currentX, this.currentY);
 
-        // Handle scroll based on pinch state
-        if (this.isPinching && this.isPinchScrolling) {
+        // Dispatch cursor position event for games to listen
+        window.dispatchEvent(new CustomEvent('gestureCursorMove', {
+            detail: { x: this.currentX, y: this.currentY }
+        }));
+
+        // Check if a game is active
+        const isGameActive = document.documentElement.hasAttribute('data-game-active');
+
+        // Handle scroll based on pinch state - DISABLED during games
+        if (this.isPinching && this.isPinchScrolling && !isGameActive) {
             const deltaY = (prevY - this.currentY) * (SCROLL_SENSITIVITY / 100);
             if (Math.abs(deltaY) > 0.01) {
                 window.scrollBy(0, deltaY);
                 this.scrollVelocityY = deltaY;
             }
-        } else if (Math.abs(this.scrollVelocityY) > 0.1) {
+        } else if (Math.abs(this.scrollVelocityY) > 0.1 && !isGameActive) {
             window.scrollBy(0, this.scrollVelocityY);
             this.scrollVelocityY *= SCROLL_FRICTION;
         }

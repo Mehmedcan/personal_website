@@ -52,6 +52,9 @@ export class DuckHuntGame {
         // Flash effect
         this.flashEnabled = true;
         this.flashToggleBtn = null;
+
+        // Gesture control
+        this.boundGesturePinch = this._handleGesturePinch.bind(this);
     }
 
     /**
@@ -64,12 +67,14 @@ export class DuckHuntGame {
 
         this._savePreviousTheme();
         this._switchToLightTheme();
+        document.documentElement.setAttribute('data-game-active', 'duck-hunt');
 
         // First zoom and position the container, then show background
         this._setupGamePosition().then(() => {
             this._createBackground();
             this._startDuckSpawning();
             this._createFlashToggle();
+            this._initGestureListeners();
         });
 
         console.log('Duck Hunt: Game started!');
@@ -88,6 +93,8 @@ export class DuckHuntGame {
         this._resetGamePosition();
         this._restorePreviousTheme();
         this._removeFlashToggle();
+        this._removeGestureListeners();
+        document.documentElement.removeAttribute('data-game-active');
 
         console.log('Duck Hunt: Game stopped!');
     }
@@ -529,6 +536,49 @@ export class DuckHuntGame {
             this.flashLabel = null;
             this.toggleTrack = null;
             this.toggleKnob = null;
+        }
+    }
+
+    // ==========================================
+    // GESTURE CONTROL
+    // ==========================================
+
+    /**
+     * Initialize gesture event listeners
+     * @private
+     */
+    _initGestureListeners() {
+        window.addEventListener('gesturePinch', this.boundGesturePinch);
+    }
+
+    /**
+     * Remove gesture event listeners
+     * @private
+     */
+    _removeGestureListeners() {
+        window.removeEventListener('gesturePinch', this.boundGesturePinch);
+    }
+
+    /**
+     * Handle gesture pinch - shoot ducks
+     * @private
+     */
+    _handleGesturePinch(e) {
+        const { x, y } = e.detail;
+        const hitRadius = 60; // Hit detection radius
+
+        // Check all ducks for hits
+        for (const duck of this.ducks) {
+            if (duck.isDead) continue;
+
+            const dx = x - duck.x;
+            const dy = y - duck.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < hitRadius) {
+                this._killDuck(duck);
+                break; // Only kill one duck per pinch
+            }
         }
     }
 

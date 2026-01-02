@@ -41,6 +41,11 @@ export class SaveTheEmojiGame {
         this.cursor = { x: 0, y: 0 };
         this.boundMouseMove = this._handleMouseMove.bind(this);
         this.boundMouseDown = this._handleMouseDown.bind(this);
+
+        // Gesture control bindings
+        this.boundGestureCursorMove = this._handleGestureCursorMove.bind(this);
+        this.boundGesturePinch = this._handleGesturePinch.bind(this);
+        this.isGestureMode = false;
     }
 
     // ==========================================
@@ -61,6 +66,7 @@ export class SaveTheEmojiGame {
         document.documentElement.setAttribute('data-game-active', 'save-the-emoji');
         this._startLetterFall();
         this._scheduleSpiderInvasion();
+        this._initGestureListeners();
 
         console.log('Save the Emoji: Game started!');
         return this;
@@ -76,6 +82,7 @@ export class SaveTheEmojiGame {
         this._stopLetterFall();
         this._stopSpiderInvasion();
         this._removeSlipper();
+        this._removeGestureListeners();
         document.documentElement.removeAttribute('data-game-active');
         this._restorePreviousTheme();
 
@@ -417,6 +424,68 @@ export class SaveTheEmojiGame {
                 }, 500);
             }
         }
+    }
+
+
+    // ==========================================
+    // GESTURE CONTROL
+    // ==========================================
+
+    /**
+     * Initialize gesture event listeners
+     * @private
+     */
+    _initGestureListeners() {
+        // Check if gesture mode is active
+        const customCursor = document.getElementById('custom-cursor');
+        this.isGestureMode = customCursor && customCursor.style.display === 'block';
+
+        window.addEventListener('gestureCursorMove', this.boundGestureCursorMove);
+        window.addEventListener('gesturePinch', this.boundGesturePinch);
+    }
+
+    /**
+     * Remove gesture event listeners
+     * @private
+     */
+    _removeGestureListeners() {
+        window.removeEventListener('gestureCursorMove', this.boundGestureCursorMove);
+        window.removeEventListener('gesturePinch', this.boundGesturePinch);
+    }
+
+    /**
+     * Handle gesture cursor movement - update slipper position
+     * @private
+     */
+    _handleGestureCursorMove(e) {
+        const { x, y } = e.detail;
+        this.cursor.x = x;
+        this.cursor.y = y;
+
+        if (this.slipper) {
+            this.slipper.style.left = `${x}px`;
+            this.slipper.style.top = `${y}px`;
+        }
+    }
+
+    /**
+     * Handle gesture pinch - slap slipper
+     * @private
+     */
+    _handleGesturePinch(e) {
+        if (!this.slipper) return;
+
+        // Update cursor position from pinch event
+        this.cursor.x = e.detail.x;
+        this.cursor.y = e.detail.y;
+
+        // Trigger slap animation
+        this.slipper.classList.remove('slapping');
+        void this.slipper.offsetWidth; // Trigger reflow
+        this.slipper.classList.add('slapping');
+
+        // Check for spider kills
+        this._checkSpiderKill();
     }
 
 
