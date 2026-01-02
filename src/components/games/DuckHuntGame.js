@@ -76,6 +76,7 @@ export class DuckHuntGame {
         this.isFailed = false;
         this.restartButton = null;
         this.failGlowElement = null;
+        this.failGlowInterval = null;
     }
 
     /**
@@ -113,6 +114,12 @@ export class DuckHuntGame {
     stop() {
         if (!this.isActive) return;
         this.isActive = false;
+
+        // Clear fail glow interval first to prevent callback execution
+        if (this.failGlowInterval) {
+            clearInterval(this.failGlowInterval);
+            this.failGlowInterval = null;
+        }
 
         this._stopDuckSpawning();
         this._removeBackground();
@@ -1045,7 +1052,14 @@ export class DuckHuntGame {
         let glowCount = 1; // Already showed first glow
         const totalToggles = count * 2;
         
-        const glowInterval = setInterval(() => {
+        this.failGlowInterval = setInterval(() => {
+            // Check if game is still active
+            if (!this.isActive) {
+                clearInterval(this.failGlowInterval);
+                this.failGlowInterval = null;
+                return;
+            }
+
             // Toggle glow visibility
             if (this.failGlowElement) {
                 this.failGlowElement.classList.toggle('active');
@@ -1054,12 +1068,13 @@ export class DuckHuntGame {
             glowCount++;
 
             if (glowCount >= totalToggles) {
-                clearInterval(glowInterval);
+                clearInterval(this.failGlowInterval);
+                this.failGlowInterval = null;
                 // Remove glow element after sequence
                 if (!this.isFailed) {
                     this._removeFailGlow();
                 }
-                if (callback) callback();
+                if (callback && this.isActive) callback();
             }
         }, FAIL_GLOW_INTERVAL);
     }

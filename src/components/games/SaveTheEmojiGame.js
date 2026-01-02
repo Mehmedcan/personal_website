@@ -64,6 +64,7 @@ export class SaveTheEmojiGame {
         this.isFailed = false;
         this.restartButton = null;
         this.failGlowElement = null;
+        this.failGlowInterval = null;
     }
 
     // ==========================================
@@ -98,6 +99,12 @@ export class SaveTheEmojiGame {
     stop() {
         if (!this.isActive) return;
         this.isActive = false;
+
+        // Clear fail glow interval first to prevent callback execution
+        if (this.failGlowInterval) {
+            clearInterval(this.failGlowInterval);
+            this.failGlowInterval = null;
+        }
 
         this._stopLetterFall();
         this._stopSpiderInvasion();
@@ -586,7 +593,14 @@ export class SaveTheEmojiGame {
         this.failGlowElement.classList.add('active');
 
         let glowCount = 1; // Already showed first glow
-        const glowInterval = setInterval(() => {
+        this.failGlowInterval = setInterval(() => {
+            // Check if game is still active
+            if (!this.isActive) {
+                clearInterval(this.failGlowInterval);
+                this.failGlowInterval = null;
+                return;
+            }
+
             // Toggle glow visibility
             if (this.failGlowElement) {
                 this.failGlowElement.classList.toggle('active');
@@ -597,8 +611,9 @@ export class SaveTheEmojiGame {
             // Each toggle is half of a flash cycle
             // We need FAIL_GLOW_COUNT full cycles = FAIL_GLOW_COUNT * 2 toggles
             if (glowCount >= FAIL_GLOW_COUNT * 2) {
-                clearInterval(glowInterval);
-                if (callback) callback();
+                clearInterval(this.failGlowInterval);
+                this.failGlowInterval = null;
+                if (callback && this.isActive) callback();
             }
         }, FAIL_GLOW_INTERVAL);
     }
