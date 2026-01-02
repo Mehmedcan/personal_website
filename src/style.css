@@ -940,6 +940,8 @@ body {
   right: auto;
   z-index: 10005;
   margin: 0;
+  min-width: 256px;
+  /* 1.3x of 180px */
 }
 
 #games-menu-toggle.active {
@@ -970,7 +972,7 @@ body {
 
 .glow-button:before {
   content: '';
-  background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+  background: linear-gradient(45deg, #7a00ff, #002bff, #9089fc, #646cff, #7a00ff, #002bff, #9089fc, #646cff, #7a00ff);
   position: absolute;
   top: -2px;
   left: -2px;
