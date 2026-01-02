@@ -41,6 +41,8 @@ export class ParticleSystem {
         this.particlePool = []; // Object pool for reusing particles
         this.time = 0;
         this.animationPaused = false;
+        this.lastFrameTime = 0; // For delta time calculation
+        this.animationFrameId = null; // Track RAF ID for proper cleanup
 
         // Mouse/cursor tracking
         this.targetMouseX = 0;
@@ -116,7 +118,9 @@ export class ParticleSystem {
         this.resize();
         this.updateScrollVisibility();
         this.updateParticleGrid();
-        this.animate();
+        
+        // Start animation with RAF timestamp
+        this.animationFrameId = requestAnimationFrame((t) => this.animate(t));
     }
 
     setupButtonHoverListeners() {
@@ -169,7 +173,7 @@ export class ParticleSystem {
         // Pause animation when tab is hidden (background)
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
-                this.animationPaused = true;
+                this.pauseAnimation();
             } else {
                 this.resumeAnimation();
             }
@@ -316,26 +320,46 @@ export class ParticleSystem {
         };
     }
 
-    animate() {
+    animate(currentTime = 0) {
+        // Don't run if paused
+        if (this.animationPaused) return;
+
+        // Calculate delta time (capped to prevent large jumps after tab switch)
+        const deltaTime = this.lastFrameTime ? Math.min(currentTime - this.lastFrameTime, 50) : 16.67;
+        this.lastFrameTime = currentTime;
+
         // Update scroll visibility first (always needed to detect when to resume)
         this.updateVisibilityState();
 
         // If particles are completely invisible, pause animation loop
         if (this.scrollVisibilityMultiplier < 0.01) {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.animationPaused = true;
+            this.pauseAnimation();
             return; // Stop the animation loop completely
         }
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.time += 1;
+        
+        // Use delta time for consistent animation speed (normalize to ~60fps)
+        this.time += deltaTime / 16.67;
 
         this.updateMousePosition();
         this.updateButtonPositions();
         this.updateButtonVisibility();
         this.renderParticlesBatched();
 
-        requestAnimationFrame(() => this.animate());
+        this.animationFrameId = requestAnimationFrame((t) => this.animate(t));
+    }
+
+    /**
+     * Pause animation and cancel pending frame
+     */
+    pauseAnimation() {
+        this.animationPaused = true;
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
     }
 
     /**
@@ -344,7 +368,8 @@ export class ParticleSystem {
     resumeAnimation() {
         if (this.animationPaused) {
             this.animationPaused = false;
-            this.animate();
+            this.lastFrameTime = 0; // Reset to prevent large delta on resume
+            this.animationFrameId = requestAnimationFrame((t) => this.animate(t));
         }
     }
 
